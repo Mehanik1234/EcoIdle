@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Idle Game</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    padding: 250px 20px;
+    background-color: rgb(90, 90, 90);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    color: white;
+    transition: background-color 1s;
+}
+
+body.clean {
+    background-color: #5a8f5a;
+}
+
+body.lesspolluted {
+    background-color: #658f2a;
+}
+
+body.polluted {
+    background-color: #7a7a3a;
+}
+
+body.lessdirty {
+    background-color: #7a613a;
+}
+body.dirty {
+    background-color: #5f4a3a;
+}
+
+body.toxic {
+    background-color: #3a3a3a;
+}
+
+.game {
+    background: #2e2e2e;
+    padding: 25px;
+    border-radius: 12px;
+    width: 300px;
+    text-align: center;
+}
+
+.resource {
+    font-size: 18px;
+    margin: 6px 0;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    background: #4caf50;
+    color: white;
+}
+
+button:disabled {
+    background: #777;
+    cursor: not-allowed;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+    <h1>Idle Game</h1>
+
+    <div class="resource">Coins: <span id="coins">0</span></div>
+    <div class="resource">Pollution: <span id="pollution">0</span></div>
+    <div class="resource">Days: <span id="days">0</span></div>
+    <div class="resource">Fines: <span id="minuscoins">10</span></div>
+    <div class="resource">Coins: +<span id="perSecond">0</span>/sec</div>
+    <div class="resource">Pollution: +<span id="pollutionPerSec">0</span>/tick</div>
+    <div class="resource">pollution reduction: -<span id="pollutionReduction">0</span>/tick</div>
+
+    <button onclick="clickCoin()">Click</button>
+
+    <button onclick="buyUpgrade()" id="upgradeBtn">
+        Small Market (+1/sec) - <span id="upgradeCost">10</span>
+    </button>
+
+    <button onclick="buyMarket()" id="MarketBtn">
+        Medium Market (+2/sec) - <span id="MarketCost">15</span>
+    </button>
+
+    <button onclick="buyBigMarket()" id="BMarketBtn">
+        Big Market (+4/sec) - <span id="BMarketCost">100</span>
+    </button>
+
+    <button onclick="buySFactory()" id="SfactoryBtn">
+        Small Factory (+10/sec) - <span id="SfactoryCost">300</span>
+    </button>
+
+    <button onclick="buyMFactory()" id="MfactoryBtn">
+        Medium Factory (+20/sec) - <span id="MfactoryCost">500</span>
+    </button>
+
+    <button onclick="buyBFactory()" id="BfactoryBtn">
+        Big Factory (+40/sec) - <span id="BfactoryCost">800</span>
+    </button>
+
+    <button onclick="buyPlusCoins()" id="pCoinsBtn">
+        Reduce fines (-5) - <span id="pCoinsCost">200</span>
+    </button>
+
+    <button onclick="buyMP()" id="MPBtn">
+        Pollution treatment plant (-1 pollution) - <span id="MPCost">500</span>
+    </button>
+</div>
+
+<script>
+let coins = 1;
+let days = 0;
+let minuscoins = 10;
+
+// income
+let cps1 = 1, cps2 = 0, cps3 = 0, cps4 = 0, cps5 = 0, cps6 = 0;
+
+// pollution
+let pollution = 0;
+let pollutionPerSecond = 0;
+let pollutionReduction = 0;
+let pollutionLevel = 0;
+
+// costs
+let upgradeCost = 10;
+let MarketCost = 15;
+let BMarketCost = 100;
+let SfactoryCost = 300;
+let MfactoryCost = 500;
+let BfactoryCost = 800;
+let pCoinsCost = 200;
+let MPCost = 500;
+
+// click
+function clickCoin() {
+    coins++;
+    updateUI();
+}
+
+// upgrades
+function buyUpgrade() {
+    if (coins >= upgradeCost) {
+        coins -= upgradeCost;
+        cps1 += 1;
+        upgradeCost = Math.floor(upgradeCost * 1.13);
+        updateUI();
+    }
+}
+
+function buyMarket() {
+    if (coins >= MarketCost) {
+        coins -= MarketCost;
+        cps2 += 2;
+        MarketCost = Math.floor(MarketCost * 1.12);
+        updateUI();
+    }
+}
+
+function buyBigMarket() {
+    if (coins >= BMarketCost) {
+        coins -= BMarketCost;
+        cps3 += 4;
+        BMarketCost = Math.floor(BMarketCost * 1.11);
+        updateUI();
+    }
+}
+
+function buySFactory() {
+    if (coins >= SfactoryCost) {
+        coins -= SfactoryCost;
+        cps4 += 10;
+        pollutionPerSecond += 1;
+        SfactoryCost = Math.floor(SfactoryCost * 1.11);
+        updateUI();
+    }
+}
+
+function buyMFactory() {
+    if (coins >= MfactoryCost) {
+        coins -= MfactoryCost;
+        cps5 += 20;
+        pollutionPerSecond += 2;
+        MfactoryCost = Math.floor(MfactoryCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyBFactory() {
+    if (coins >= BfactoryCost) {
+        coins -= BfactoryCost;
+        cps6 += 40;
+        pollutionPerSecond += 3;
+        BfactoryCost = Math.floor(BfactoryCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyPlusCoins() {
+    if (coins >= pCoinsCost) {
+        coins -= pCoinsCost;
+        minuscoins = Math.max(0, minuscoins - 5);
+        pCoinsCost = Math.floor(pCoinsCost * 1.2);
+        updateUI();
+    }
+}
+
+function buyMP() {
+    if (coins >= MPCost) {
+        coins -= MPCost;
+        pollutionReduction += 1;
+        pollution -= 1; 
+        if (pollution < 0) pollution = 0;
+        MPCost = Math.floor(MPCost * 1.1);
+        updateUI();
+    }
+}
+
+// income tick
+setInterval(() => {
+    coins += cps1 + cps2 + cps3 + cps4 + cps5 + cps6;
+    updateUI();
+}, 1000);
+
+// pollution tick
+setInterval(() => {
+    pollution += pollutionPerSecond - pollutionReduction; // фабрики минус очистка
+    if (pollution < 0) pollution = 0;
+
+    // уровень загрязнения и штрафы
+    let newLevel = Math.floor(pollution / 10);
+    if (newLevel > pollutionLevel) {
+        minuscoins += (newLevel - pollutionLevel);
+        pollutionLevel = newLevel;
+    }
+
+    updateUI();
+}, 5000);
+
+// days & fines
+setInterval(() => {
+    days++;
+    if (days % 10 === 0) {
+        coins -= minuscoins;
+        if (coins < 0) coins = 0;
+        minuscoins += 10;
+    }
+    updateUI();
+}, 10000);
+
+function updateBackground() {
+    document.body.className = "";
+
+    if (pollution < 10) {
+        document.body.classList.add("clean");
+    } else if (pollution < 15) {
+        document.body.classList.add("lesspolluted");
+    } else if (pollution < 30) {
+        document.body.classList.add("polluted");
+    } else if (pollution < 45) {
+        document.body.classList.add("lessdirty");
+    } else if (pollution < 60) {
+        document.body.classList.add("dirty");
+    } else {
+        document.body.classList.add("toxic");
+    }
+}
+
+// UI
+function updateUI() {
+    document.getElementById("coins").textContent = coins;
+    document.getElementById("days").textContent = days;
+    document.getElementById("minuscoins").textContent = minuscoins;
+    document.getElementById("pollution").textContent = pollution;
+    document.getElementById("pollutionReduction").textContent = pollutionReduction;
+
+    document.getElementById("perSecond").textContent =
+        cps1 + cps2 + cps3 + cps4 + cps5 + cps6;
+
+    document.getElementById("pollutionPerSec").textContent = pollutionPerSecond;
+
+    document.getElementById("upgradeCost").textContent = upgradeCost;
+    document.getElementById("MarketCost").textContent = MarketCost;
+    document.getElementById("BMarketCost").textContent = BMarketCost;
+    document.getElementById("SfactoryCost").textContent = SfactoryCost;
+    document.getElementById("MfactoryCost").textContent = MfactoryCost;
+    document.getElementById("BfactoryCost").textContent = BfactoryCost;
+    document.getElementById("pCoinsCost").textContent = pCoinsCost;
+    document.getElementById("MPCost").textContent = MPCost;
+
+    document.getElementById("upgradeBtn").disabled = coins < upgradeCost;
+    document.getElementById("MarketBtn").disabled = coins < MarketCost;
+    document.getElementById("BMarketBtn").disabled = coins < BMarketCost;
+    document.getElementById("SfactoryBtn").disabled = coins < SfactoryCost;
+    document.getElementById("MfactoryBtn").disabled = coins < MfactoryCost;
+    document.getElementById("BfactoryBtn").disabled = coins < BfactoryCost;
+    document.getElementById("pCoinsBtn").disabled = coins < pCoinsCost;
+    document.getElementById("MPBtn").disabled = coins < MPCost;
+    updateBackground();
+}
+
+updateUI();
+</script>
+
+</body>
+</html>
