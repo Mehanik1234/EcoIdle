@@ -4,74 +4,132 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Building Info</title>
+
 <style>
-    body {
-        background-color: rgb(90, 90, 90);
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-family: Arial, Helvetica, sans-serif;
-        color: white;
-    }
+body {
+    background-color: rgb(90, 90, 90);
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+}
 
-    h1 {
-        text-shadow: 3px 3px 0 #00000043;
-    }
+h1 {
+    text-shadow: 3px 3px 0 #00000043;
+    text-align: center;
+}
 
-    .box {
-        background: #2e2e2e;
-        padding: 25px;
-        border-radius: 12px;
-        width: 320px;
-        max-height: 60vh;
-        overflow-y: auto;
-        text-align: left;
-    }
+.box {
+    background: #2e2e2e;
+    padding: 25px;
+    border-radius: 12px;
+    width: 340px;
+    max-height: 65vh;
+    overflow-y: auto;
+    text-align: left;
+}
 
-    .box p {
-        margin: 8px 0;
-        line-height: 1.5;
-    }
+.box p {
+    margin: 10px 0;
+    line-height: 1.5;
+}
 
-    button {
-        background-color: gray;
-        padding: 8px 20px;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        box-shadow: 3px 3px 0 #00000061;
-        margin-top: 20px;
-        cursor: pointer;
-        color: white;
-    }
+button {
+    background-color: gray;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    box-shadow: 3px 3px 0 #00000061;
+    margin-top: 20px;
+    cursor: pointer;
+    color: white;
+}
 
-    button:hover {
-        background-color: #5a5a5a;
-    }
+button:hover {
+    background-color: #5a5a5a;
+}
 </style>
 </head>
+
 <body>
 
 <div class="box">
-    <h1>Building Info</h1>
-    <p><strong>1. Small Market</strong><br>Cost: 10 coins<br>Income: +1 coin/sec<br>Pollution: 0</p>
-    <p><strong>2. Medium Market</strong><br>Cost: 15 coins<br>Income: +2 coins/sec<br>Pollution: 0</p>
-    <p><strong>3. Big Market</strong><br>Cost: 100 coins<br>Income: +4 coins/sec<br>Pollution: 0</p>
-    <p><strong>4. Small Factory</strong><br>Cost: 300 coins<br>Income: +10 coins/sec<br>Pollution: +1/tick</p>
-    <p><strong>5. Medium Factory</strong><br>Cost: 500 coins<br>Income: +20 coins/sec<br>Pollution: +2/tick</p>
-    <p><strong>6. Big Factory</strong><br>Cost: 800 coins<br>Income: +40 coins/sec<br>Pollution: +3/tick</p>
-    <p><strong>7. Nuclear Plant</strong><br>Cost: 3000 coins<br>Income: +100 coins/sec<br>Pollution: +5/tick</p>
-    <p><strong>8. Nuclear Plant</strong><br>Cost: 6000 coins<br>Income: +300 coins/sec<br>Pollution: +10/tick</p>
-    <p><strong>9. Reduce Fines</strong><br>Cost: 200 coins<br>Effect: Reduce daily fines by 5 coins</p>
-    <p><strong>10. Treatment Plant</strong><br>Cost: 500 coins<br>Effect: Reduce pollution by 1/tick</p>
-    <p><strong>11. Cleanup Facility</strong><br>Cost: 800 coins<br>Effect: Reduce pollution by 2/tick</p>
-    <p><strong>12. Planetary Cleanser</strong><br>Cost: 1100 coins<br>Effect: Reduce pollution by 5/tick</p>
+<h1>Building Info</h1>
+
+<p><strong>1. Small Market</strong><br>
+Cost: 10 coins<br>
+Income: +1 coin/sec<br>
+Pollution: 0</p>
+
+<p><strong>2. Medium Market</strong><br>
+Cost: 15 coins<br>
+Income: +2 coins/sec<br>
+Pollution: 0</p>
+
+<p><strong>3. Big Market</strong><br>
+Cost: 100 coins<br>
+Income: +4 coins/sec<br>
+Pollution: 0</p>
+
+<p><strong>4. Coal Power Plant</strong><br>
+Cost: 150 coins<br>
+Income: +8 coins/sec<br>
+Pollution: +0.5/tick</p>
+
+<p><strong>5. Small Factory</strong><br>
+Cost: 300 coins<br>
+Income: +10 coins/sec<br>
+Pollution: +1/tick</p>
+
+<p><strong>6. Medium Factory</strong><br>
+Cost: 500 coins<br>
+Income: +20 coins/sec<br>
+Pollution: +2/tick</p>
+
+<p><strong>7. Big Factory</strong><br>
+Cost: 800 coins<br>
+Income: +40 coins/sec<br>
+Pollution: +3/tick</p>
+
+<p><strong>8. Oil Refinery</strong><br>
+Cost: 1000 coins<br>
+Income: +60 coins/sec<br>
+Pollution: +6/tick</p>
+
+<p><strong>9. Nuclear Power Plant</strong><br>
+Cost: 3000 coins<br>
+Income: +100 coins/sec<br>
+Pollution: +5/tick</p>
+
+<p><strong>10. Antimatter Reactor</strong><br>
+Cost: 6000 coins<br>
+Income: +300 coins/sec<br>
+Pollution: +10/tick</p>
+
+<p><strong>11. Reduce Fines</strong><br>
+Cost: 200 coins<br>
+Effect: Reduce fines by 5 coins</p>
+
+<p><strong>12. Pollution Treatment Plant</strong><br>
+Cost: 500 coins<br>
+Effect: -1 pollution per tick</p>
+
+<p><strong>13. Environmental Cleanup Facility</strong><br>
+Cost: 800 coins<br>
+Effect: -2 pollution per tick</p>
+
+<p><strong>14. Planetary Cleanser</strong><br>
+Cost: 1100 coins<br>
+Effect: -5 pollution per tick</p>
+
 </div>
 
-<a href="lobby.html"><button>Back to Info</button></a>
+<a href="lobby.html"><button>Back</button></a>
 
 </body>
 </html>

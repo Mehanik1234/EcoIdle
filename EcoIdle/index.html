@@ -48,6 +48,10 @@ body.toxic {
     border-radius: 12px;
     width: 300px;
     text-align: center;
+    background: linear-gradient(145deg, #2e2e2e, #3a3a3a);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    padding: 45px;
+    border-radius: 20px;
 }
 
 .resource {
@@ -82,9 +86,43 @@ button:disabled {
 
 .button-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr ; /* две колонки */
+    grid-template-columns: 1fr 1fr  ; /* две колонки */
     gap: 5px;
 }
+
+/* Контейнер дыма */
+#smoke {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+    display: none;
+}
+
+/* Одна частица дыма */
+.smoke-particle {
+    position: absolute;
+    bottom: -100px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(180,180,180,0.35) 0%, rgba(180,180,180,0.15) 40%, transparent 70%);
+    border-radius: 50%;
+    animation: smokeRise linear infinite;
+    filter: blur(8px);
+}
+
+@keyframes smokeRise {
+    0% {
+        transform: translateY(0) translateX(0) scale(0.8);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-120vh) translateX(200px) scale(1.8);
+        opacity: 0;
+    }
+}
+
 
 </style>
 </head>
@@ -94,9 +132,9 @@ button:disabled {
 <div class="game">
     <h1>Idle Game</h1>
 
-    <div class="resource">Coins: <span id="coins">0</span></div>
-    <div class="resource">Pollution: <span id="pollution">0</span></div>
-    <div class="resource">Days: <span id="days">0</span></div>
+    <div class="resource">💰 Coins: <span id="coins">0</span></div>
+    <div class="resource">🌫 Pollution: <span id="pollution">0</span></div>
+    <div class="resource">📅 Days: <span id="days">0</span></div>    
     <div class="resource">Fines: <span id="minuscoins">10</span></div>
     <div class="resource">Coins: +<span id="perSecond">0</span>/sec</div>
     <div class="resource">Pollution: +<span id="pollutionPerSec">0</span>/tick</div>
@@ -108,9 +146,11 @@ button:disabled {
         <button onclick="buyUpgrade()" id="upgradeBtn">Small Market (+1/sec) - <span id="upgradeCost">10</span></button>
         <button onclick="buyMarket()" id="MarketBtn">Medium Market (+2/sec) - <span id="MarketCost">15</span></button>
         <button onclick="buyBigMarket()" id="BMarketBtn">Big Market (+4/sec) - <span id="BMarketCost">100</span></button>
+        <button onclick="buyCoal()" id="CoalBtn">Coal Power Plant (+8/sec) - <span id="CoalCost">150</span></button>
         <button onclick="buySFactory()" id="SfactoryBtn">Small Factory (+10/sec) - <span id="SfactoryCost">300</span></button>
         <button onclick="buyMFactory()" id="MfactoryBtn">Medium Factory (+20/sec) - <span id="MfactoryCost">500</span></button>
         <button onclick="buyBFactory()" id="BfactoryBtn">Big Factory (+40/sec) - <span id="BfactoryCost">800</span></button>
+        <button onclick="buyOil()" id="OilBtn">Oil Refinery (+60/sec) - <span id="OilCost">800</span></button>
         <button onclick="buyNuclear()" id="NuclearBtn">Nuclear power plant (+100/sec) - <span id="NuclearCost">3000</span></button>
         <button onclick="buyNuclear2()" id="Nuclear2Btn">Antimatter Reactor(+300/sec) - <span id="Nuclear2Cost">6000</span></button>
         <button onclick="buyPlusCoins()" id="pCoinsBtn">Reduce fines (-5) - <span id="pCoinsCost">200</span></button>
@@ -120,6 +160,7 @@ button:disabled {
     </div>
     <button onclick="resetSave()">Reset Save</button>
 
+    <div id="smoke"></div>
     
 </div>
 
@@ -129,7 +170,9 @@ let days = 0;
 let minuscoins = 10;
 
 // income
-let cps1 = 1, cps2 = 0, cps3 = 0, cps4 = 0, cps5 = 0, cps6 = 0, cps7 = 0, cps8 = 0;
+let cps1 = 1, cps2 = 0, cps3 = 0, cps4 = 0, cps5 = 0, cps6 = 0, cps7 = 0, cps8 = 0, cps9 = 0, cps10 = 0;
+
+let allowSave = true;
 
 // pollution
 let pollution = 0;
@@ -140,14 +183,17 @@ let pollutionLevel = 0;
 //building
 let smallFactories = 0;
 let mediumFactories = 0;
+let CoalPlants = 0;
 
 // costs
 let upgradeCost = 10;
 let MarketCost = 15;
 let BMarketCost = 100;
+let CoalCost = 150;
 let SfactoryCost = 300;
 let MfactoryCost = 500;
 let BfactoryCost = 800;
+let OilCost = 1000;
 let NuclearCost = 3000;
 let Nuclear2Cost = 6000;
 let pCoinsCost = 200;
@@ -166,7 +212,7 @@ function buyUpgrade() {
     if (coins >= upgradeCost) {
         coins -= upgradeCost;
         cps1 += 1;
-        upgradeCost = Math.floor(upgradeCost * 1.13);
+        upgradeCost = Math.floor(upgradeCost * 1.12);
         updateUI();
     }
 }
@@ -175,7 +221,7 @@ function buyMarket() {
     if (coins >= MarketCost) {
         coins -= MarketCost;
         cps2 += 2;
-        MarketCost = Math.floor(MarketCost * 1.12);
+        MarketCost = Math.floor(MarketCost * 1.1);
         updateUI();
     }
 }
@@ -184,7 +230,29 @@ function buyBigMarket() {
     if (coins >= BMarketCost) {
         coins -= BMarketCost;
         cps3 += 4;
-        BMarketCost = Math.floor(BMarketCost * 1.11);
+        BMarketCost = Math.floor(BMarketCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyCoal() {
+    if (coins >= CoalCost) {
+        coins -= CoalCost;
+        CoalPlants++;
+        cps9 = CoalPlants * 8;
+        pollutionPerSecond += 0.5;
+        SfactoryCost = Math.floor(SfactoryCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyCoal() {
+    if (coins >= CoalCost) {
+        coins -= CoalCost;
+        CoalPlants++;
+        cps9 = CoalPlants * 8;
+        pollutionPerSecond += 0.5;
+        CoalCost = Math.floor(CoalCost * 1.09);
         updateUI();
     }
 }
@@ -195,7 +263,7 @@ function buySFactory() {
         smallFactories++;
         cps4 = smallFactories * 10;
         pollutionPerSecond += 1;
-        SfactoryCost = Math.floor(SfactoryCost * 1.11);
+        SfactoryCost = Math.floor(SfactoryCost * 1.09);
         updateUI();
     }
 }
@@ -206,7 +274,7 @@ function buyMFactory() {
         mediumFactories++;
         cps5 = mediumFactories * 20;
         pollutionPerSecond += 2;
-        MfactoryCost = Math.floor(MfactoryCost * 1.1);
+        MfactoryCost = Math.floor(MfactoryCost * 1.09);
         updateUI();
     }
 }
@@ -217,6 +285,16 @@ function buyBFactory() {
         cps6 += 40;
         pollutionPerSecond += 3;
         BfactoryCost = Math.floor(BfactoryCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyOil() {
+    if (coins >= OilCost) {
+        coins -= OilCost;
+        cps10 += 60;
+        pollutionPerSecond += 6
+        OilCost = Math.floor(OilCost * 1.1);
         updateUI();
     }
 }
@@ -285,6 +363,7 @@ function buyMP3() {
 
 function resetSave() {
     if (confirm("Delete save?")) {
+        allowSave = false;
         localStorage.removeItem("idleGameSave");
         location.reload();
     }
@@ -306,6 +385,8 @@ function loadGame() {
     cps6 = save.cps6 ?? cps6;
     cps7 = save.cps7 ?? cps7;
     cps8 = save.cps8 ?? cps8;
+    cps9 = save.cps9 ?? cps9;
+    cps10 = save.cps10 ?? cps10
 
     pollution = save.pollution ?? pollution;
     pollutionPerSecond = save.pollutionPerSecond ?? pollutionPerSecond;
@@ -314,13 +395,16 @@ function loadGame() {
 
     smallFactories = save.smallFactories ?? smallFactories;
     mediumFactories = save.mediumFactories ?? mediumFactories;
+    CoalPlants = save.CoalPlants ?? CoalPlants;
 
     upgradeCost = save.upgradeCost ?? upgradeCost;
     MarketCost = save.MarketCost ?? MarketCost;
     BMarketCost = save.BMarketCost ?? BMarketCost;
+    CoalCost = save.CoalCost ?? CoalCost;
     SfactoryCost = save.SfactoryCost ?? SfactoryCost;
     MfactoryCost = save.MfactoryCost ?? MfactoryCost;
     BfactoryCost = save.BfactoryCost ?? BfactoryCost;
+    OilCost = save.OilCost ?? OilCost;
     NuclearCost = save.NuclearCost ?? NuclearCost;
     Nuclear2Cost = save.Nuclear2Cost ?? Nuclear2Cost;
     pCoinsCost = save.pCoinsCost ?? pCoinsCost;
@@ -332,7 +416,7 @@ function loadGame() {
 
 // income tick
 setInterval(() => {
-    coins += cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8;
+    coins += cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8 + cps9 + cps10;
     updateUI();
 }, 1000);
 
@@ -347,6 +431,11 @@ setInterval(() => {
         minuscoins += (newLevel - pollutionLevel);
         pollutionLevel = newLevel;
     }
+    if (pollution >= 100) {
+    enableSmoke();
+} else {
+    disableSmoke();
+}
 
     updateUI();
 }, 5000);
@@ -399,6 +488,16 @@ setInterval(() => {
     }
 }, 20000);
 
+setInterval(() => {
+    if (pollution >= 70 && CoalPlants > 0) {
+        alert("The government closed one Coal Power plant!");
+        CoalPlants--;
+        cps9 = CoalPlants * 8;
+        pollutionPerSecond = Math.max(0, pollutionPerSecond - 0.5);
+        updateUI();
+    }
+}, 20000);
+
 function updateBackground() {
     document.body.className = "";
 
@@ -417,6 +516,31 @@ function updateBackground() {
     }
 }
 
+const smoke = document.getElementById("smoke");
+let smokeActive = false;
+
+function enableSmoke() {
+    if (smokeActive) return;
+    smokeActive = true;
+    smoke.style.display = "block";
+
+    for (let i = 0; i < 15; i++) {
+        const p = document.createElement("div");
+        p.className = "smoke-particle";
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.animationDuration = 8 + Math.random() * 6 + "s";
+        p.style.animationDelay = Math.random() * 5 + "s";
+        smoke.appendChild(p);
+    }
+}
+
+function disableSmoke() {
+    smokeActive = false;
+    smoke.style.display = "none";
+    smoke.innerHTML = "";
+}
+
+
 // UI
 function updateUI() {
     document.getElementById("coins").textContent = coins;
@@ -426,16 +550,18 @@ function updateUI() {
     document.getElementById("pollutionReduction").textContent = pollutionReduction;
 
     document.getElementById("perSecond").textContent =
-        cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8;
+        cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8 + cps9 + cps10;
 
     document.getElementById("pollutionPerSec").textContent = pollutionPerSecond;
 
     document.getElementById("upgradeCost").textContent = upgradeCost;
     document.getElementById("MarketCost").textContent = MarketCost;
     document.getElementById("BMarketCost").textContent = BMarketCost;
+    document.getElementById("CoalCost").textContent = CoalCost;
     document.getElementById("SfactoryCost").textContent = SfactoryCost;
     document.getElementById("MfactoryCost").textContent = MfactoryCost;
     document.getElementById("BfactoryCost").textContent = BfactoryCost;
+    document.getElementById("OilCost").textContent = OilCost;
     document.getElementById("NuclearCost").textContent = NuclearCost;
     document.getElementById("Nuclear2Cost").textContent = Nuclear2Cost;
     document.getElementById("pCoinsCost").textContent = pCoinsCost;
@@ -446,9 +572,11 @@ function updateUI() {
     document.getElementById("upgradeBtn").disabled = coins < upgradeCost;
     document.getElementById("MarketBtn").disabled = coins < MarketCost;
     document.getElementById("BMarketBtn").disabled = coins < BMarketCost;
+    document.getElementById("CoalBtn").disabled = coins < CoalCost;
     document.getElementById("SfactoryBtn").disabled = coins < SfactoryCost;
     document.getElementById("MfactoryBtn").disabled = coins < MfactoryCost;
     document.getElementById("BfactoryBtn").disabled = coins < BfactoryCost;
+    document.getElementById("OilBtn").disabled = coins < OilCost;
     document.getElementById("NuclearBtn").disabled = coins < NuclearCost;
     document.getElementById("Nuclear2Btn").disabled = coins < Nuclear2Cost;
     document.getElementById("pCoinsBtn").disabled = coins < pCoinsCost;
@@ -461,27 +589,28 @@ function updateUI() {
 
 loadGame();
 function saveGame() {
+    if (!allowSave) return;
+
     const save = {
         coins,
         days,
         minuscoins,
-
-        cps1, cps2, cps3, cps4, cps5, cps6, cps7, cps8,
-
+        cps1, cps2, cps3, cps4, cps5, cps6, cps7, cps8, cps9, cps10,
         pollution,
         pollutionPerSecond,
         pollutionReduction,
         pollutionLevel,
-
         smallFactories,
         mediumFactories,
-
+        CoalPlants,
         upgradeCost,
         MarketCost,
         BMarketCost,
+        CoalCost,
         SfactoryCost,
         MfactoryCost,
         BfactoryCost,
+        OilCost,
         NuclearCost,
         Nuclear2Cost,
         pCoinsCost,
