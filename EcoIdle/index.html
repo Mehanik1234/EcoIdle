@@ -137,7 +137,9 @@ button:disabled {
 
     <div class="resource">💰 Coins: <span id="coins">0</span></div>
     <div class="resource">🌫 Pollution: <span id="pollution">0</span></div>
-    <div class="resource">📅 Days: <span id="days">0</span></div>    
+    <div class="resource">📅 Days: <span id="days">0</span></div>
+    <div class="resource">population: <span id="population">1000</span></div>  
+    <div class="resource">population growth: <span id="populationPS">50</span></div>  
     <div class="resource">Fines: <span id="minuscoins">10</span></div>
     <div class="resource">Coins: +<span id="perSecond">0</span>/sec</div>
     <div class="resource">Pollution: +<span id="pollutionPerSec">0</span>/tick</div>
@@ -161,6 +163,7 @@ button:disabled {
         <button onclick="buyMP2()" id="MPBtn2">Environmental Cleanup Facility (-2 pollution) - <span id="MPCost2">800</span></button>
         <button onclick="buyMP3()" id="MPBtn3">Planetary Cleanser (-5 pollution) - <span id="MPCost3">1100</span></button>
     </div>
+
     <button onclick="resetSave()">Reset Save</button>
 
     <div id="smoke"></div>
@@ -182,6 +185,11 @@ let pollution = 0;
 let pollutionPerSecond = 0;
 let pollutionReduction = 0;
 let pollutionLevel = 0;
+
+//population
+let population = 1000;
+let basePopulationPS = 50;
+let populationPS = basePopulationPS;
 
 //building
 let smallFactories = 0;
@@ -219,6 +227,7 @@ function buyUpgrade() {
     if (coins >= upgradeCost) {
         coins -= upgradeCost;
         cps1 += 1;
+        basePopulationPS++;
         upgradeCost = Math.floor(upgradeCost * 1.12);
         updateUI();
     }
@@ -228,6 +237,7 @@ function buyMarket() {
     if (coins >= MarketCost) {
         coins -= MarketCost;
         cps2 += 2;
+        basePopulationPS++;
         MarketCost = Math.floor(MarketCost * 1.1);
         updateUI();
     }
@@ -237,18 +247,8 @@ function buyBigMarket() {
     if (coins >= BMarketCost) {
         coins -= BMarketCost;
         cps3 += 4;
+        basePopulationPS++;
         BMarketCost = Math.floor(BMarketCost * 1.09);
-        updateUI();
-    }
-}
-
-function buyCoal() {
-    if (coins >= CoalCost) {
-        coins -= CoalCost;
-        CoalPlants++;
-        cps9 = CoalPlants * 8;
-        pollutionPerSecond += 0.5;
-        CoalCost = Math.floor(CoalCost * 1.09);
         updateUI();
     }
 }
@@ -302,7 +302,7 @@ function buyOil() {
         coins -= OilCost;
 
         oilCount++;
-        cps10 += 60;
+        cps10 = oilCount * 60;
 
         incomeMultiplier += 0.01; // +1% к общему доходу
 
@@ -391,6 +391,8 @@ function loadGame() {
     coins = save.coins ?? coins;
     days = save.days ?? days;
     minuscoins = save.minuscoins ?? minuscoins;
+    basePopulationPS = save.basePopulationPS ?? basePopulationPS;
+    populationPS = basePopulationPS;
 
     cps1 = save.cps1 ?? cps1;
     cps2 = save.cps2 ?? cps2;
@@ -474,6 +476,14 @@ setInterval(() => {
     updateUI();
 }, 10000);
 
+ //population
+setInterval(() => {
+    population += populationPS;
+    if (population < 0) population = 0;
+    updateUI();
+}, 5000);
+
+
 //random
 setInterval(() => {
     let baseChance = 0.02; 
@@ -495,8 +505,7 @@ setInterval(() => {
 // dont pollute system 1 (маленькие заводы)
 setInterval(() => {
     if (pollution >= 100 && smallFactories > 0) {
-        // 60% шанс = Math.random() < 0.6
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.8) {
             alert("The government closed one small factory!");
             smallFactories--;
             cps4 = smallFactories * 10;
@@ -510,7 +519,7 @@ setInterval(() => {
 // dont pollute system 2 (средние заводы)
 setInterval(() => {
     if (pollution >= 200 && mediumFactories > 0) {
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.8) {
             alert("The government closed one medium factory!");
             mediumFactories--;
             cps5 = mediumFactories * 20;
@@ -518,13 +527,13 @@ setInterval(() => {
             updateUI();
         }
     }
-}, 20000);
+}, 15000);
 
 
 // dont pollute system 3 (угольные станции)
 setInterval(() => {
     if (pollution >= 70 && CoalPlants > 0) {
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.7) {
             alert("The government closed one Coal Power plant!");
             CoalPlants--;
             cps9 = CoalPlants * 8;
@@ -532,13 +541,13 @@ setInterval(() => {
             updateUI();
         }
     }
-}, 20000);
+},15000);
 
 
 // dont pollute system 4 (большие заводы)
 setInterval(() => {
     if (pollution >= 250 && bigFactories > 0) {
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.7) {
             alert("The government closed one big factory!");
             bigFactories--;
             cps6 = bigFactories * 40;
@@ -546,7 +555,7 @@ setInterval(() => {
             updateUI();
         }
     }
-}, 20000);
+}, 15000);
 
 setInterval(() => {
     if (oilCount <= 0) return;
@@ -563,17 +572,17 @@ setInterval(() => {
         alert("The government closed one Oil refinery!");
         oilCount--;
 
-        incomeMultiplier = Math.max(1, incomeMultiplier - 0.01);
+        incomeMultiplier = 1 + oilCount * 0.01;
         cps10 = oilCount * 60;
         pollutionPerSecond = Math.max(0, pollutionPerSecond - 6);
 
         updateUI();
     }
-}, 20000);
+}, 15000);
 
 setInterval(() => {
     if (pollution >= 300 && Nuclears > 0) {
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.7) {
             alert("The government closed one Nuclear plant!");
             Nuclears--;
             cps7 = Nuclears * 100;
@@ -581,7 +590,24 @@ setInterval(() => {
             updateUI();
         }
     }
-}, 20000);
+}, 15000);
+//population
+setInterval(() => {
+    if (pollution < 10) {
+        populationPS = basePopulationPS;
+    } else if (pollution < 50) {
+        populationPS = basePopulationPS - 10;
+    } else if (pollution < 100) {
+        populationPS = basePopulationPS - 25;
+    } else {
+        populationPS = -50;
+    }
+}, 5000);
+
+setInterval(() => {
+    // 1000 населения = +1%
+    incomeMultiplier = 1 + (population / 500) * 0.01;
+}, 1000);
 
 function updateBackground() {
     document.body.className = "";
@@ -627,7 +653,6 @@ function disableSmoke() {
     smoke.innerHTML = "";
 }
 
-
 // UI
 function updateUI() {
     document.getElementById("coins").textContent = coins;
@@ -655,6 +680,8 @@ function updateUI() {
     document.getElementById("MPCost").textContent = MPCost;
     document.getElementById("MPCost2").textContent = MPCost2;
     document.getElementById("MPCost3").textContent = MPCost3;
+    document.getElementById("population").textContent = population;
+    document.getElementById("populationPS").textContent = populationPS;
 
     document.getElementById("upgradeBtn").disabled = coins < upgradeCost;
     document.getElementById("MarketBtn").disabled = coins < MarketCost;
@@ -682,6 +709,9 @@ function saveGame() {
         coins,
         days,
         minuscoins,
+        population,
+        basePopulationPS,
+        populationPS,
         cps1, cps2, cps3, cps4, cps5, cps6, cps7, cps8, cps9, cps10,
         pollution,
         pollutionPerSecond,

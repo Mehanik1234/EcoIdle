@@ -3,45 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>EcoIdle.Idle</title>
   <style>
     body {
       background-color: rgb(90, 90, 90);
       margin: 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: Arial, sans-serif;
-    
-    }
-    h1 {
-      font-family:Arial, Helvetica, sans-serif;
-      text-shadow: 3px 3px 0 #00000043;
-      color: white;
-    }
-    button {
-      width: 100%;
-    padding: 10px 17px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    background: #4caf50;
-    color: white;
-    text-shadow: 3px 3px 0 #00000055;
-    box-shadow: 3px 3px 0 #00000055;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
     }
 
+    h1 {
+      font-family: Arial, Helvetica, sans-serif;
+      text-shadow: 3px 3px 0 #00000043;
+      color: white;
+      margin-bottom: 5px;
+    }
+
+    h5 {
+      color: #dddddd;
+      margin-bottom: 10px;
+    }
+
+    #splash {
+      margin-bottom: 25px;
+      color: #ffd54f;
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 2px 2px 0 #00000055;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px 17px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #4caf50;
+      color: white;
+      text-shadow: 3px 3px 0 #00000055;
+      box-shadow: 3px 3px 0 #00000055;
+    }
+
+    a {
+      width: 200px;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
-  <h5>Version: alpha 0.4.26</h5>
+
+  <h5>Version: alpha 0.5.26</h5>
   <h1>EcoIdle.Idle</h1>
+  <div id="splash"></div>
+
   <a href="index.html"><button>Start</button></a>
   <a href="Info.html"><button>Info [recomended]</button></a>
+
+  <script>
+    const splashes = [
+      "Save the planet!",
+      "Now with pollution!",
+      "Idle but not useless!",
+      "Trees are OP",
+      "Coal is temporary",
+      "Eco update when?",
+      "Totally not Minecraft",
+      "Green energy moment",
+      "Alpha but playable",
+      "Nature clicks back",
+      "Why are you playing this?",
+      "Who create this?",
+      "STOP POLLUTING!",
+      "Read the info NOW!",
+      "The planet is watching you",
+      "No planet B",
+      "Idle with consequences",
+      "You did this.",
+      "Bigger numbers, bigger problems",
+      "Speedrunning climate change",
+      "Clean energy wins late game",
+      "Not finished, like the planet",
+      "Optimization or collapse?",
+      "Capitalism moment"
+
+    ];
+
+    const splash = document.getElementById("splash");
+    splash.textContent = splashes[Math.floor(Math.random() * splashes.length)];
+
+    const rareSplashes = [
+  "The planet remembers your choices.",
+  "This run is canon.",
+  "There was another way.",
+  "You optimized too far."
+];
+
+const normalSplashes = [
+  "Save the planet!",
+  "Idle but not useless!",
+  "Trees are OP",
+  "STOP POLLUTING!",
+  "Nature clicks back"
+];
+
+const roll = Math.random();
+
+if (roll < 0.01) {
+  splash.textContent = rareSplashes[Math.floor(Math.random() * rareSplashes.length)];
+} else {
+  splash.textContent = normalSplashes[Math.floor(Math.random() * normalSplashes.length)];
+}
+
+  </script>
 
 </body>
 </html>
