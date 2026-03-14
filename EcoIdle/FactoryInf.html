@@ -16,7 +16,110 @@ body {
     justify-content: center;
     font-family: Arial, Helvetica, sans-serif;
     color: white;
+    position: relative;
+    overflow: hidden;
 }
+
+body.clean {
+    background-color: #5a8f5a;
+}
+
+body.lesspolluted {
+    background-color: #658f2a;
+}
+
+body.polluted {
+    background-color: #7a7a3a;
+}
+
+body.lessdirty {
+    background-color: #7a613a;
+}
+body.dirty {
+    background-color: #5f4a3a;
+}
+
+body.toxic {
+    background-color: #3a3a3a;
+}
+body.dead {
+    background-color: rgb(34, 34, 34);
+}
+
+    .smoke {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 2;
+      filter: blur(2px);
+    }
+
+    .smoke span {
+      position: absolute;
+      bottom: -30%;
+      width: 50vmin;
+      height: 50vmin;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200, 200, 200, 0.35) 0%, rgba(200, 200, 200, 0.15) 35%, rgba(200, 200, 200, 0) 70%);
+      animation: smokeRise 12s linear infinite;
+      transform: translateX(-50%);
+    }
+
+    .smoke span:nth-child(1) {
+      left: 20%;
+      animation-duration: 14s;
+      animation-delay: -2s;
+      width: 55vmin;
+      height: 55vmin;
+    }
+
+    .smoke span:nth-child(2) {
+      left: 55%;
+      animation-duration: 11s;
+      animation-delay: -5s;
+      width: 45vmin;
+      height: 45vmin;
+    }
+
+    .smoke span:nth-child(3) {
+      left: 80%;
+      animation-duration: 16s;
+      animation-delay: -9s;
+      width: 60vmin;
+      height: 60vmin;
+    }
+
+    @keyframes smokeRise {
+      0% {
+        transform: translate(-50%, 0) scale(0.9);
+        opacity: 0;
+      }
+      15% {
+        opacity: 0.55;
+      }
+      100% {
+        transform: translate(-50%, -120%) scale(1.35);
+        opacity: 0;
+      }
+    }
+
+    body.lessdirty .smoke {
+      opacity: 0.35;
+    }
+
+    body.dirty .smoke {
+      opacity: 0.55;
+    }
+
+    body.toxic .smoke {
+      opacity: 0.75;
+    }
+
+    body.dead .smoke {
+      opacity: 0.9;
+    }
 
 h1 {
     text-shadow: 3px 3px 0 #00000043;
@@ -53,10 +156,35 @@ button {
 button:hover {
     background-color: #5a5a5a;
 }
+
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    background-color: rgb(90, 90, 90);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+}
+
+.loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
 </style>
 </head>
 
 <body>
+
+<div id="loadingScreen" class="loading-screen">Loading...</div>
+<div class="smoke" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
 
 <div class="box">
 <h1>Building Info</h1>
@@ -64,19 +192,19 @@ button:hover {
 <p><strong>1. Small Market</strong><br>
 Cost: 10 coins<br>
 Income: +1 coin/sec<br>
-population: +1 <br>
+population: +1/sec <br>
 Pollution: 0</p>
 
 <p><strong>2. Medium Market</strong><br>
 Cost: 15 coins<br>
 Income: +2 coins/sec<br>
-population: +1 <br>
+population: +1/sec <br>
 Pollution: 0</p>
 
 <p><strong>3. Big Market</strong><br>
 Cost: 100 coins<br>
 Income: +4 coins/sec<br>
-population: +1 <br>
+population: +1/sec <br>
 Pollution: 0</p>
 
 <p><strong>4. Coal Power Plant</strong><br>
@@ -131,9 +259,46 @@ Effect: -2 pollution per tick</p>
 Cost: 1100 coins<br>
 Effect: -5 pollution per tick</p>
 
+<p><strong>15. Farm</strong><br>
+Cost: 100 <br>
+Effect: -0.5 pollution per tick <br>
+Income: +5 coins/sec
+population: +5 /sec <br></p>
+
 </div>
 
 <a href="lobby.html"><button>Back</button></a>
+
+<script>
+const loadingScreen = document.getElementById("loadingScreen");
+window.addEventListener("load", () => {
+    setTimeout(() => loadingScreen.classList.add("hidden"), 150);
+});
+
+document.querySelectorAll("a[href]").forEach((link) => {
+    link.addEventListener("click", () => {
+        loadingScreen.classList.remove("hidden");
+    });
+});
+
+const r = Math.random();
+
+if (r < 0.1) {
+  document.body.classList.add("clean");
+} else if (r < 0.24) {
+  document.body.classList.add("lesspolluted");
+} else if (r < 0.38) {
+  document.body.classList.add("polluted");
+} else if (r < 0.52) {
+  document.body.classList.add("lessdirty");
+} else if (r < 0.66) {
+  document.body.classList.add("dirty");
+} else if (r < 0.8) {
+  document.body.classList.add("toxic");
+} else {
+  document.body.classList.add("dead");
+}
+</script>
 
 </body>
 </html>
