@@ -45,6 +45,43 @@ body.dead {
     background-color: rgb(34, 34, 34);
 }
 
+.game.shake {
+    animation: reactorShake 0.55s linear;
+}
+
+@keyframes reactorShake {
+    0% { transform: translate(0, 0); }
+    10% { transform: translate(-6px, 4px); }
+    20% { transform: translate(6px, -4px); }
+    30% { transform: translate(-5px, -3px); }
+    40% { transform: translate(5px, 3px); }
+    50% { transform: translate(-4px, 2px); }
+    60% { transform: translate(4px, -2px); }
+    70% { transform: translate(-3px, 1px); }
+    80% { transform: translate(3px, -1px); }
+    90% { transform: translate(-2px, 1px); }
+    100% { transform: translate(0, 0); }
+}
+
+#flash {
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1200;
+}
+
+body.flash #flash {
+    animation: reactorFlash 0.6s ease;
+}
+
+@keyframes reactorFlash {
+    0% { opacity: 0; }
+    15% { opacity: 0.9; }
+    100% { opacity: 0; }
+}
+
 .game {
     background: #2e2e2e;
     padding: 45px;
@@ -138,6 +175,27 @@ button:disabled {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr; /* две колонки */
     gap: 5px;
+}
+
+.category-bar {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0 6px;
+    width: 100%;
+}
+
+.category-bar button {
+    flex: 1;
+    padding: 8px 6px;
+    margin-top: 0;
+    font-size: 13px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.category-bar button.active {
+    background: #4caf50;
+    border-color: #4caf50;
 }
 
 .loading-screen {
@@ -242,7 +300,10 @@ button:disabled {
 
 <body>
 
+<audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
+
 <div id="loadingScreen" class="loading-screen">Loading...</div>
+<div id="flash" aria-hidden="true"></div>
 
 <div class="game">
     <h1>Idle Game</h1>
@@ -276,23 +337,40 @@ button:disabled {
 
     <button onclick="clickCoin()">Click</button>
 
-    <div class="button-grid">
-        <button onclick="buyUpgrade()" id="upgradeBtn">Small Market (+1/sec) - <span id="upgradeCost">10</span></button>
-        <button onclick="buyMarket()" id="MarketBtn">Medium Market (+2/sec) - <span id="MarketCost">15</span></button>
-        <button onclick="buyBigMarket()" id="BMarketBtn">Big Market (+4/sec) - <span id="BMarketCost">100</span></button>
-        <button onclick="buyCoal()" id="CoalBtn">Coal Power Plant (+8/sec) - <span id="CoalCost">150</span></button>
-        <button onclick="buySFactory()" id="SfactoryBtn">Small Factory (+10/sec) - <span id="SfactoryCost">300</span></button>
-        <button onclick="buyMFactory()" id="MfactoryBtn">Medium Factory (+20/sec) - <span id="MfactoryCost">500</span></button>
-        <button onclick="buyBFactory()" id="BfactoryBtn">Big Factory (+40/sec) - <span id="BfactoryCost">800</span></button>
-        <button onclick="buyOil()" id="OilBtn">Oil Refinery (+60/sec) - <span id="OilCost">800</span></button>
-        <button onclick="buyNuclear()" id="NuclearBtn">Nuclear power plant (+100/sec) - <span id="NuclearCost">3000</span></button>
-        <button onclick="buyNuclear2()" id="Nuclear2Btn">Antimatter Reactor(+300/sec) - <span id="Nuclear2Cost">6000</span></button>
-        <button onclick="buyPlusCoins()" id="pCoinsBtn">Reduce fines (-5) - <span id="pCoinsCost">200</span></button>
-        <button onclick="buyFarm()" id="FarmBtn">Farm (-0.5 pollution) - <span id="FarmCost">100</span></button>
-        <button onclick="buyMP()" id="MPBtn">Pollution treatment plant (-1 pollution) - <span id="MPCost">500</span></button>
-        <button onclick="buyMP2()" id="MPBtn2">Environmental Cleanup Facility (-2 pollution) - <span id="MPCost2">800</span></button>
-        <button onclick="buyMP3()" id="MPBtn3">Planetary Cleanser (-5 pollution) - <span id="MPCost3">1100</span></button>
+    <div class="category-bar" id="categoryBar">
+        <button type="button" data-filter="all" class="active">Все</button>
+        <button type="button" data-filter="polluting">Загрязняющие</button>
+        <button type="button" data-filter="cleaning">Очищающие</button>
+        <button type="button" data-filter="other">Прочее</button>
+        <button type="button" data-filter="polite">политические</button>
     </div>
+
+    <div class="button-grid">
+        <button onclick="buyUpgrade()" id="upgradeBtn" data-category="other">Small Market (+1/sec) - <span id="upgradeCost">10</span></button>
+        <button onclick="buyMarket()" id="MarketBtn" data-category="other">Medium Market (+2/sec) - <span id="MarketCost">15</span></button>
+        <button onclick="buyBigMarket()" id="BMarketBtn" data-category="other">Big Market (+4/sec) - <span id="BMarketCost">100</span></button>
+        <button onclick="buyCoal()" id="CoalBtn" data-category="polluting">Coal Power Plant (+8/sec) - <span id="CoalCost">150</span></button>
+        <button onclick="buySFactory()" id="SfactoryBtn" data-category="polluting">Small Factory (+10/sec) - <span id="SfactoryCost">300</span></button>
+        <button onclick="buyMFactory()" id="MfactoryBtn" data-category="polluting">Medium Factory (+20/sec) - <span id="MfactoryCost">500</span></button>
+        <button onclick="buyBFactory()" id="BfactoryBtn" data-category="polluting">Big Factory (+40/sec) - <span id="BfactoryCost">800</span></button>
+        <button onclick="buyOil()" id="OilBtn" data-category="polluting">Oil Refinery (+60/sec) - <span id="OilCost">800</span></button>
+        <button onclick="buyNuclear()" id="NuclearBtn" data-category="polluting">Nuclear power plant (+100/sec) - <span id="NuclearCost">3000</span></button>
+        <button onclick="buyNuclear2()" id="Nuclear2Btn" data-category="polluting">Antimatter Reactor(+300/sec) - <span id="Nuclear2Cost">6000</span></button>
+        <button onclick="buyPlusCoins()" id="pCoinsBtn" data-category="other">Reduce fines (-5) - <span id="pCoinsCost">200</span></button>
+        <button onclick="buyFarm()" id="FarmBtn" data-category="cleaning">Farm (-0.5 pollution) - <span id="FarmCost">100</span></button>
+        <button onclick="buyMP()" id="MPBtn" data-category="cleaning">Pollution treatment plant (-1 pollution) - <span id="MPCost">500</span></button>
+        <button onclick="buyMP2()" id="MPBtn2" data-category="cleaning">Environmental Cleanup Facility (-2 pollution) - <span id="MPCost2">800</span></button>
+        <button onclick="buyMP3()" id="MPBtn3" data-category="cleaning">Planetary Cleanser (-5 pollution) - <span id="MPCost3">1100</span></button>
+
+
+    </div>
+
+        <div class="button-grid">
+            <button onclick="useIndustrialSupport()" id="policyIndustrial" data-category="polite">Industrial Support (+10 pollution growth, +0.5% multiplier)</button>
+            <button onclick="usePublicTransport()" id="policyTransport" data-category="polite">Public Transport Project (+25 population growth, +5 pollution)</button>
+            <button onclick="useBusinessGrants()" id="policyGrants" data-category="polite">Business Grants (-50,000 coins, +2% multiplier)</button>
+        </div>
+        <div class="resource small" id="policyStatus"></div>
 
     <button onclick="resetSave()">Reset Save</button>
 
@@ -303,6 +381,15 @@ button:disabled {
 </div>
 
 <script>
+const bgm = document.getElementById("bgmusic");
+if (bgm) {
+    bgm.volume = 0.35;
+    const tryPlay = () => bgm.play().catch(() => {});
+    window.addEventListener("load", tryPlay);
+    document.addEventListener("click", tryPlay, { once: true });
+    document.addEventListener("keydown", tryPlay, { once: true });
+}
+
 let coins = 1;
 let days = 0;
 let minuscoins = 10;
@@ -333,9 +420,16 @@ let Nuclears = 0;
 let oilIncomeBonus = 0;
 let populationMultiplier = 1;
 let incomeMultiplier = 1;
+let policyMultiplierBonus = 0;
 let eventLog = [];
 const milestones = [5000, 25000, 100000, 300000, 1000000];
 let milestoneIndex = 0;
+
+// policies
+const policyCooldownDays = 30;
+let industrialLastUsedDay = -Infinity;
+let transportLastUsedDay = -Infinity;
+let grantsLastUsedDay = -Infinity;
  
 // costs
 let upgradeCost = 10;
@@ -359,12 +453,20 @@ function formatNum(value) {
 }
 
 function recalculateMultiplier() {
-    incomeMultiplier = (1 + oilIncomeBonus) * populationMultiplier;
+    incomeMultiplier = (1 + oilIncomeBonus + policyMultiplierBonus) * populationMultiplier;
 }
 
 function addEvent(text) {
     eventLog.unshift(`[Day ${days}] ${text}`);
     if (eventLog.length > 8) eventLog.pop();
+}
+
+function canUsePolicy(lastUsedDay) {
+    return days >= lastUsedDay + policyCooldownDays;
+}
+
+function policyCooldownLeft(lastUsedDay) {
+    return Math.max(0, (lastUsedDay + policyCooldownDays) - days);
 }
 
 const secretWord = "ECO";
@@ -561,6 +663,37 @@ function buyMP3() {
     }
 }
 
+function useIndustrialSupport() {
+    if (!canUsePolicy(industrialLastUsedDay)) return;
+    industrialLastUsedDay = days;
+    pollutionPerSecond += 10;
+    policyMultiplierBonus += 0.005;
+    recalculateMultiplier();
+    addEvent("Policy: Industrial Support enacted.");
+    updateUI();
+}
+
+function usePublicTransport() {
+    if (!canUsePolicy(transportLastUsedDay)) return;
+    transportLastUsedDay = days;
+    basePopulationPS += 25;
+    populationPS = basePopulationPS;
+    pollution += 5;
+    addEvent("Policy: Public Transport Project launched.");
+    updateUI();
+}
+
+function useBusinessGrants() {
+    if (!canUsePolicy(grantsLastUsedDay)) return;
+    if (coins < 50000) return;
+    grantsLastUsedDay = days;
+    coins -= 50000;
+    policyMultiplierBonus += 0.02;
+    recalculateMultiplier();
+    addEvent("Policy: Business Grants approved.");
+    updateUI();
+}
+
 function resetSave() {
     if (confirm("Delete save?")) {
         allowSave = false;
@@ -568,6 +701,22 @@ function resetSave() {
         addEvent("Save deleted.");
         location.reload();
     }
+}
+
+function triggerReactorExplosionEffect() {
+    const gameEl = document.querySelector(".game");
+    if (gameEl) {
+        gameEl.classList.remove("shake");
+        void gameEl.offsetWidth;
+        gameEl.classList.add("shake");
+    }
+    document.body.classList.remove("flash");
+    void document.body.offsetWidth;
+    document.body.classList.add("flash");
+    setTimeout(() => {
+        if (gameEl) gameEl.classList.remove("shake");
+        document.body.classList.remove("flash");
+    }, 650);
 }
 
 function loadGame() {
@@ -613,11 +762,16 @@ function loadGame() {
     oilCount = save.oilCount ?? oilCount;
     oilIncomeBonus = save.oilIncomeBonus ?? (oilCount * 0.01);
     populationMultiplier = save.populationMultiplier ?? (1 + (population / 500) * 0.01);
+    policyMultiplierBonus = save.policyMultiplierBonus ?? policyMultiplierBonus;
     recalculateMultiplier();
     Nuclears = save.Nuclears ?? Nuclears;
 
     milestoneIndex = save.milestoneIndex ?? milestoneIndex;
     eventLog = save.eventLog ?? eventLog;
+
+    industrialLastUsedDay = save.industrialLastUsedDay ?? industrialLastUsedDay;
+    transportLastUsedDay = save.transportLastUsedDay ?? transportLastUsedDay;
+    grantsLastUsedDay = save.grantsLastUsedDay ?? grantsLastUsedDay;
 
     upgradeCost = save.upgradeCost ?? upgradeCost;
     MarketCost = save.MarketCost ?? MarketCost;
@@ -682,16 +836,16 @@ setInterval(() => {
     updateUI();
 }, 10000);
 
- //population
-setInterval(() => {
-    population += populationPS;
-    if (population < 0) population = 0;
-    updateUI();
-}, 5000);
+
 
 
 //random
 setInterval(() => {
+    population += populationPS;
+    if (population < 0) population = 0;
+    updateUI();
+
+    
     let baseChance = 0.02; 
     let extra = (pollution * 0.002) - (pollutionReduction * 0.01);
 
@@ -806,6 +960,7 @@ setInterval(() => {
             pollution += 300
             minuscoins += 50
             population -= 1000
+            triggerReactorExplosionEffect();
         }
     }
 }, 15000);
@@ -942,6 +1097,21 @@ function updateUI() {
     document.getElementById("MPBtn").disabled = coins < MPCost;
     document.getElementById("MPBtn2").disabled = coins < MPCost2;
     document.getElementById("MPBtn3").disabled = coins < MPCost3;
+
+    const industrialReady = canUsePolicy(industrialLastUsedDay);
+    const transportReady = canUsePolicy(transportLastUsedDay);
+    const grantsReady = canUsePolicy(grantsLastUsedDay) && coins >= 50000;
+
+    document.getElementById("policyIndustrial").disabled = !industrialReady;
+    document.getElementById("policyTransport").disabled = !transportReady;
+    document.getElementById("policyGrants").disabled = !grantsReady;
+
+    const statusParts = [];
+    if (!industrialReady) statusParts.push(`Industrial Support: ${policyCooldownLeft(industrialLastUsedDay)}d`);
+    if (!transportReady) statusParts.push(`Public Transport: ${policyCooldownLeft(transportLastUsedDay)}d`);
+    if (!canUsePolicy(grantsLastUsedDay)) statusParts.push(`Business Grants: ${policyCooldownLeft(grantsLastUsedDay)}d`);
+    if (canUsePolicy(grantsLastUsedDay) && coins < 50000) statusParts.push("Business Grants: need 50,000 coins");
+    document.getElementById("policyStatus").textContent = statusParts.join(" | ");
     updateBackground();
 
 }
@@ -970,6 +1140,24 @@ infoToggle.addEventListener("click", () => {
     const isOpen = infoPanel.classList.toggle("open");
     infoToggle.setAttribute("aria-expanded", String(isOpen));
 });
+
+const categoryBar = document.getElementById("categoryBar");
+const categoryButtons = categoryBar.querySelectorAll("button[data-filter]");
+const buildingButtons = document.querySelectorAll(".button-grid button[data-category]");
+
+function setCategoryFilter(filter) {
+    categoryButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.filter === filter);
+    });
+    buildingButtons.forEach((btn) => {
+        const show = filter === "all" || btn.dataset.category === filter;
+        btn.style.display = show ? "" : "none";
+    });
+}
+
+categoryButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setCategoryFilter(btn.dataset.filter));
+});
 function saveGame() {
     if (!allowSave) return;
 
@@ -994,8 +1182,12 @@ function saveGame() {
         incomeMultiplier,
         oilIncomeBonus,
         populationMultiplier,
+        policyMultiplierBonus,
         eventLog,
         milestoneIndex,
+        industrialLastUsedDay,
+        transportLastUsedDay,
+        grantsLastUsedDay,
         upgradeCost,
         MarketCost,
         BMarketCost,

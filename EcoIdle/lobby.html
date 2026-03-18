@@ -40,9 +40,61 @@ body.dirty {
 body.toxic {
     background-color: #3a3a3a;
 }
-body.dead {
+    body.dead {
     background-color: rgb(34, 34, 34);
 }
+
+    .leaves {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    body.clean .leaves,
+    body.lesspolluted .leaves {
+      opacity: 0.9;
+    }
+
+    .leaf {
+      position: absolute;
+      top: -10%;
+      width: 20px;
+      height: 12px;
+      background: radial-gradient(circle at 30% 30%, #a7e16f 0%, #7dcf4c 55%, #4f9f2f 100%);
+      border-radius: 0 60% 60% 60%;
+      transform-origin: center;
+      opacity: 0.75;
+      animation: leafFall linear infinite;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,0.25));
+    }
+
+    .leaf::before {
+      content: "";
+      position: absolute;
+      left: 55%;
+      top: 10%;
+      width: 2px;
+      height: 80%;
+      background: rgba(255,255,255,0.35);
+      transform: rotate(20deg);
+      border-radius: 2px;
+    }
+
+    @keyframes leafFall {
+      0% {
+        transform: translate(-10vw, -10vh) rotate(0deg);
+      }
+      50% {
+        transform: translate(10vw, 50vh) rotate(140deg);
+      }
+      100% {
+        transform: translate(-8vw, 115vh) rotate(280deg);
+      }
+    }
 
     .smoke {
       position: fixed;
@@ -176,18 +228,115 @@ body.dead {
       opacity: 0;
       pointer-events: none;
     }
+
+    .flash {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 35%, rgba(255,255,255,0) 70%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+      transition: opacity 0.12s ease;
+    }
+
+    .flash.active {
+      opacity: 1;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      10% { transform: translate(-4px, 2px) rotate(-0.4deg); }
+      20% { transform: translate(3px, -3px) rotate(0.5deg); }
+      30% { transform: translate(-3px, -2px) rotate(-0.3deg); }
+      40% { transform: translate(4px, 3px) rotate(0.3deg); }
+      50% { transform: translate(-2px, 2px) rotate(-0.2deg); }
+      60% { transform: translate(3px, -1px) rotate(0.2deg); }
+      70% { transform: translate(-4px, 1px) rotate(-0.4deg); }
+      80% { transform: translate(2px, -2px) rotate(0.3deg); }
+      90% { transform: translate(-2px, 2px) rotate(-0.2deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    body.shake {
+      animation: shake 0.6s linear 3;
+    }
+
+    .explosion {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 998;
+    }
+
+    .explosion.active {
+      opacity: 1;
+      animation: explosionFade 1.8s ease-out forwards;
+    }
+
+    .explosion::before,
+    .explosion::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      width: 20vmin;
+      height: 20vmin;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+    }
+
+    .explosion::before {
+      background: radial-gradient(circle, rgba(255, 240, 200, 0.95) 0%, rgba(255, 150, 60, 0.85) 35%, rgba(180, 60, 20, 0.3) 60%, rgba(0, 0, 0, 0) 70%);
+      animation: fireball 0.7s ease-out forwards;
+    }
+
+    .explosion::after {
+      border: 3px solid rgba(255, 210, 140, 0.95);
+      box-shadow: 0 0 35px rgba(255, 170, 90, 0.85);
+      animation: blastRing 1.2s ease-out forwards;
+    }
+
+    @keyframes fireball {
+      0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.2; }
+      40% { transform: translate(-50%, -50%) scale(2.4); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(4.8); opacity: 0; }
+    }
+
+    @keyframes blastRing {
+      0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+      100% { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+    }
+
+    @keyframes explosionFade {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
   </style>
 </head>
 <body>
 
+  <audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
+
   <div id="loadingScreen" class="loading-screen">Loading...</div>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+  <div id="explosion" class="explosion" aria-hidden="true"></div>
+  <div class="leaves" aria-hidden="true">
+    <span class="leaf" style="left: 5%; animation-duration: 14s; animation-delay: -2s; transform: rotate(20deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 18%; animation-duration: 17s; animation-delay: -6s; transform: rotate(-10deg) scale(1.1);"></span>
+    <span class="leaf" style="left: 32%; animation-duration: 13s; animation-delay: -4s; transform: rotate(35deg) scale(0.8);"></span>
+    <span class="leaf" style="left: 48%; animation-duration: 19s; animation-delay: -8s; transform: rotate(5deg) scale(1.0);"></span>
+    <span class="leaf" style="left: 63%; animation-duration: 15s; animation-delay: -3s; transform: rotate(-25deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 77%; animation-duration: 18s; animation-delay: -7s; transform: rotate(15deg) scale(1.15);"></span>
+    <span class="leaf" style="left: 90%; animation-duration: 16s; animation-delay: -5s; transform: rotate(-5deg) scale(0.95);"></span>
+  </div>
   <div class="smoke" aria-hidden="true">
     <span></span>
     <span></span>
     <span></span>
   </div>
 
-  <h5>Version: alpha 0.6.26</h5>
+  <h5>Version: beta 0.7.26</h5>
   <h1 id="title">EcoIdle.Idle</h1>
   <div id="splash"></div>
 
@@ -196,6 +345,15 @@ body.dead {
   ="Info.html"><button>Info [recomended]</button></a>
 
   <script>
+    const bgm = document.getElementById("bgmusic");
+    if (bgm) {
+      bgm.volume = 0.35;
+      const tryPlay = () => bgm.play().catch(() => {});
+      window.addEventListener("load", tryPlay);
+      document.addEventListener("click", tryPlay, { once: true });
+      document.addEventListener("keydown", tryPlay, { once: true });
+    }
+
     const loadingScreen = document.getElementById("loadingScreen");
     window.addEventListener("load", () => {
       setTimeout(() => loadingScreen.classList.add("hidden"), 150);
@@ -305,6 +463,29 @@ if (r < 0.1) {
 } else {
   document.body.classList.add("dead");
 }
+
+    const nuclearChance = 0.05;
+    const flash = document.getElementById("flash");
+    const explosion = document.getElementById("explosion");
+
+    function triggerNuclearEvent() {
+      document.body.classList.add("shake");
+      if (flash) {
+        flash.classList.add("active");
+        setTimeout(() => flash.classList.remove("active"), 220);
+      }
+      if (explosion) {
+        explosion.classList.add("active");
+        setTimeout(() => explosion.classList.remove("active"), 1800);
+      }
+      setTimeout(() => {
+        document.body.classList.remove("shake");
+      }, 2000);
+    }
+
+    if (Math.random() < nuclearChance) {
+      setTimeout(triggerNuclearEvent, 450);
+    }
 
   </script>
 

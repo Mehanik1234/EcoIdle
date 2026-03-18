@@ -45,6 +45,58 @@ body.dead {
     background-color: rgb(34, 34, 34);
 }
 
+    .leaves {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    body.clean .leaves,
+    body.lesspolluted .leaves {
+      opacity: 0.9;
+    }
+
+    .leaf {
+      position: absolute;
+      top: -10%;
+      width: 20px;
+      height: 12px;
+      background: radial-gradient(circle at 30% 30%, #a7e16f 0%, #7dcf4c 55%, #4f9f2f 100%);
+      border-radius: 0 60% 60% 60%;
+      transform-origin: center;
+      opacity: 0.75;
+      animation: leafFall linear infinite;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,0.25));
+    }
+
+    .leaf::before {
+      content: "";
+      position: absolute;
+      left: 55%;
+      top: 10%;
+      width: 2px;
+      height: 80%;
+      background: rgba(255,255,255,0.35);
+      transform: rotate(20deg);
+      border-radius: 2px;
+    }
+
+    @keyframes leafFall {
+      0% {
+        transform: translate(-10vw, -10vh) rotate(0deg);
+      }
+      50% {
+        transform: translate(10vw, 50vh) rotate(140deg);
+      }
+      100% {
+        transform: translate(-8vw, 115vh) rotate(280deg);
+      }
+    }
+
     .smoke {
       position: fixed;
       inset: 0;
@@ -167,7 +219,18 @@ body.dead {
     </style>
 </head>
 <body>
+
+<audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
 <div id="loadingScreen" class="loading-screen">Loading...</div>
+<div class="leaves" aria-hidden="true">
+    <span class="leaf" style="left: 6%; animation-duration: 14s; animation-delay: -2s; transform: rotate(20deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 20%; animation-duration: 17s; animation-delay: -6s; transform: rotate(-10deg) scale(1.1);"></span>
+    <span class="leaf" style="left: 34%; animation-duration: 13s; animation-delay: -4s; transform: rotate(35deg) scale(0.8);"></span>
+    <span class="leaf" style="left: 50%; animation-duration: 19s; animation-delay: -8s; transform: rotate(5deg) scale(1.0);"></span>
+    <span class="leaf" style="left: 66%; animation-duration: 15s; animation-delay: -3s; transform: rotate(-25deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 80%; animation-duration: 18s; animation-delay: -7s; transform: rotate(15deg) scale(1.15);"></span>
+    <span class="leaf" style="left: 92%; animation-duration: 16s; animation-delay: -5s; transform: rotate(-5deg) scale(0.95);"></span>
+</div>
 <div class="smoke" aria-hidden="true">
     <span></span>
     <span></span>
@@ -192,6 +255,15 @@ body.dead {
 <a href="lobby.html"><button>back</button></a>
 
 <script>
+    const bgm = document.getElementById("bgmusic");
+    if (bgm) {
+        bgm.volume = 0.35;
+        const tryPlay = () => bgm.play().catch(() => {});
+        window.addEventListener("load", tryPlay);
+        document.addEventListener("click", tryPlay, { once: true });
+        document.addEventListener("keydown", tryPlay, { once: true });
+    }
+
     const loadingScreen = document.getElementById("loadingScreen");
     window.addEventListener("load", () => {
         setTimeout(() => loadingScreen.classList.add("hidden"), 150);
