@@ -22,29 +22,94 @@ body {
 
 body.clean {
     background-color: #5a8f5a;
+    --ambient-color: rgba(255, 255, 255, 0.55);
 }
 
 body.lesspolluted {
     background-color: #658f2a;
+    --ambient-color: rgba(255, 255, 255, 0.5);
 }
 
 body.polluted {
     background-color: #7a7a3a;
+    --ambient-color: rgba(255, 225, 180, 0.35);
 }
 
 body.lessdirty {
     background-color: #7a613a;
+    --ambient-color: rgba(240, 220, 200, 0.3);
 }
 body.dirty {
     background-color: #5f4a3a;
+    --ambient-color: rgba(210, 210, 210, 0.25);
 }
 
 body.toxic {
     background-color: #3a3a3a;
+    --ambient-color: rgba(200, 200, 200, 0.22);
 }
 body.dead {
     background-color: rgb(34, 34, 34);
+    --ambient-color: rgba(190, 190, 190, 0.2);
 }
+
+    body:not(.loaded) .box,
+    body:not(.loaded) a button {
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(2px);
+    }
+
+    body.loaded .box {
+      animation: fadeUp 0.7s ease forwards 0.1s;
+    }
+
+    body.loaded a:nth-of-type(1) button {
+      animation: fadeUp 0.7s ease forwards 0.22s;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    body.clean .ambient,
+    body.lesspolluted .ambient,
+    body.polluted .ambient,
+    body.lessdirty .ambient,
+    body.dirty .ambient,
+    body.toxic .ambient,
+    body.dead .ambient {
+      opacity: 0.5;
+    }
+
+    body.polluted .ambient,
+    body.lessdirty .ambient {
+      opacity: 0.4;
+    }
+
+    body.dirty .ambient,
+    body.toxic .ambient,
+    body.dead .ambient {
+      opacity: 0.3;
+    }
+
+    .ambient span {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ambient-color, rgba(255, 255, 255, 0.4));
+      filter: blur(0.2px);
+      opacity: 0.8;
+      animation: ambientDrift 18s linear infinite, ambientTwinkle 4.5s ease-in-out infinite;
+      transform: translate3d(0, 0, 0);
+    }
 
     .leaves {
       position: fixed;
@@ -194,6 +259,8 @@ h1 {
 }
 
 button {
+    position: relative;
+    overflow: hidden;
     background-color: gray;
     padding: 8px 20px;
     border: none;
@@ -203,10 +270,34 @@ button {
     margin-top: 20px;
     cursor: pointer;
     color: white;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 
 button:hover {
     background-color: #5a5a5a;
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 #00000061;
+    filter: brightness(1.05);
+}
+
+button::after {
+    content: "";
+    position: absolute;
+    inset: -40% -60%;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+    transform: translateX(-120%) rotate(15deg);
+    opacity: 0;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+}
+
+button:hover::after {
+    transform: translateX(120%) rotate(15deg);
+    opacity: 0.6;
+}
+
+button:active {
+    transform: translateY(1px);
+    box-shadow: 2px 2px 0 #00000061;
 }
 
 .loading-screen {
@@ -226,6 +317,46 @@ button:hover {
     opacity: 0;
     pointer-events: none;
 }
+
+.loading-screen::after {
+    content: "";
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.35);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    margin-left: 12px;
+    animation: loadingSpin 0.9s linear infinite;
+}
+
+@keyframes fadeUp {
+    0% { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes loadingSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes ambientDrift {
+    0% { transform: translate(-5vw, 10vh) scale(0.8); }
+    50% { transform: translate(5vw, 50vh) scale(1); }
+    100% { transform: translate(-3vw, 110vh) scale(0.9); }
+}
+
+@keyframes ambientTwinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 </head>
 
@@ -234,6 +365,18 @@ button:hover {
 <audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
 
 <div id="loadingScreen" class="loading-screen">Loading...</div>
+<div class="ambient" aria-hidden="true">
+    <span style="left: 8%; animation-duration: 16s; animation-delay: -3s; transform: scale(0.8);"></span>
+    <span style="left: 18%; animation-duration: 21s; animation-delay: -9s; transform: scale(1.0);"></span>
+    <span style="left: 28%; animation-duration: 19s; animation-delay: -7s; transform: scale(0.9);"></span>
+    <span style="left: 38%; animation-duration: 24s; animation-delay: -12s; transform: scale(1.1);"></span>
+    <span style="left: 48%; animation-duration: 17s; animation-delay: -5s; transform: scale(0.85);"></span>
+    <span style="left: 58%; animation-duration: 23s; animation-delay: -11s; transform: scale(1.05);"></span>
+    <span style="left: 68%; animation-duration: 20s; animation-delay: -6s; transform: scale(0.95);"></span>
+    <span style="left: 78%; animation-duration: 26s; animation-delay: -14s; transform: scale(1.15);"></span>
+    <span style="left: 88%; animation-duration: 22s; animation-delay: -10s; transform: scale(0.9);"></span>
+    <span style="left: 95%; animation-duration: 18s; animation-delay: -4s; transform: scale(0.85);"></span>
+</div>
 <div class="leaves" aria-hidden="true">
     <span class="leaf" style="left: 7%; animation-duration: 14s; animation-delay: -2s; transform: rotate(20deg) scale(0.9);"></span>
     <span class="leaf" style="left: 22%; animation-duration: 17s; animation-delay: -6s; transform: rotate(-10deg) scale(1.1);"></span>
@@ -344,7 +487,10 @@ if (bgm) {
 
 const loadingScreen = document.getElementById("loadingScreen");
 window.addEventListener("load", () => {
-    setTimeout(() => loadingScreen.classList.add("hidden"), 150);
+    setTimeout(() => {
+        loadingScreen.classList.add("hidden");
+        document.body.classList.add("loaded");
+    }, 150);
 });
 
 document.querySelectorAll("a[href]").forEach((link) => {
