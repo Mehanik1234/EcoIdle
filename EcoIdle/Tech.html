@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoIdle - Technology Tree</title>
+  <style>
+    body {
+      background-color: rgb(90, 90, 90);
+      margin: 0;
+      min-height: 100vh;
+      height: auto;
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 110px 20px 80px;
+      box-sizing: border-box;
+    }
+
+    /* Фон как в lobby.html */
+    body.clean { background-color: #5a8f5a; }
+    body.lesspolluted { background-color: #658f2a; }
+    body.polluted { background-color: #7a7a3a; }
+    body.lessdirty { background-color: #7a613a; }
+    body.dirty { background-color: #5f4a3a; }
+    body.toxic { background-color: #3a3a3a; }
+    body.dead { background-color: rgb(34, 34, 34); }
+
+    .ambient, .leaves, .smoke {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .ambient span {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.45);
+      filter: blur(1px);
+      animation: ambientDrift 18s linear infinite, ambientTwinkle 4.5s ease-in-out infinite;
+    }
+
+    .leaves .leaf {
+      position: absolute;
+      top: -10%;
+      width: 20px;
+      height: 12px;
+      background: radial-gradient(circle at 30% 30%, #a7e16f, #4f9f2f);
+      border-radius: 0 60% 60% 60%;
+      opacity: 0.75;
+      animation: leafFall linear infinite;
+    }
+
+    .smoke span {
+      position: absolute;
+      bottom: -30%;
+      width: 50vmin;
+      height: 50vmin;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200,200,200,0.35) 0%, transparent 70%);
+      animation: smokeRise 12s linear infinite;
+    }
+
+    @keyframes ambientDrift {
+      0% { transform: translate(-5vw, 10vh) scale(0.8); }
+      100% { transform: translate(10vw, 110vh) scale(1.1); }
+    }
+    @keyframes ambientTwinkle {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
+    @keyframes leafFall {
+      0% { transform: translateY(-10vh) rotate(0deg); }
+      100% { transform: translateY(120vh) rotate(320deg); }
+    }
+    @keyframes smokeRise {
+      0% { transform: translateY(0) scale(0.9); opacity: 0; }
+      100% { transform: translateY(-120vh) scale(1.4); opacity: 0; }
+    }
+
+    .container {
+      text-align: center;
+      z-index: 10;
+      position: relative;
+      width: min(95vw, 1200px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 48px;
+      text-shadow: 4px 4px 0 #00000060;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #ffd54f;
+      font-size: 20px;
+      margin-bottom: 40px;
+      text-shadow: 2px 2px 0 #00000055;
+    }
+
+    .legend {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 10px;
+    }
+
+    .tree-wrap {
+      width: 100%;
+      height: min(70vh, 760px);
+      overflow: hidden;
+      padding: 14px;
+      position: relative;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .tree-wrap.dragging {
+      cursor: grabbing;
+    }
+
+    .tree-pan {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translate(-50%, 0) translate(var(--pan-x, 0px), var(--pan-y, 0px));
+      transform-origin: top left;
+    }
+
+    .tree {
+      width: max-content;
+      margin: 0 auto;
+      padding: 10px 0 30px;
+    }
+
+    .tree-title {
+      margin: 16px 0 6px;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      color: #ffd54f;
+    }
+
+    .tree ul {
+      padding-top: 20px;
+      position: relative;
+      display: table;
+      margin: 0 auto;
+    }
+
+    .tree ul::after {
+      content: "";
+      display: block;
+      clear: both;
+    }
+
+    .tree li {
+      float: left;
+      text-align: center;
+      list-style-type: none;
+      position: relative;
+      padding: 20px 10px 0 10px;
+    }
+
+    .tree li::before, .tree li::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 50%;
+      border-top: 2px solid rgba(255,255,255,0.25);
+      width: 50%;
+      height: 20px;
+    }
+
+    .tree li::after {
+      right: auto;
+      left: 50%;
+      border-left: 2px solid rgba(255,255,255,0.25);
+    }
+
+    .tree li:only-child::after,
+    .tree li:only-child::before {
+      display: none;
+    }
+
+    .tree li:only-child {
+      padding-top: 0;
+    }
+
+    .tree li:first-child::before,
+    .tree li:last-child::after {
+      border: 0 none;
+    }
+
+    .tree li:last-child::before {
+      border-right: 2px solid rgba(255,255,255,0.25);
+      border-radius: 0 6px 0 0;
+    }
+
+    .tree li:first-child::after {
+      border-radius: 6px 0 0 0;
+    }
+
+    .tree ul ul::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      border-left: 2px solid rgba(255,255,255,0.25);
+      width: 0;
+      height: 20px;
+    }
+
+    .node {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 170px;
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      box-shadow: 0 10px 18px rgba(0,0,0,0.28);
+    }
+
+    .node-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .node-req {
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .node-status {
+      font-size: 11px;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .node.available {
+      border-color: rgba(90, 220, 120, 0.9);
+      box-shadow: 0 0 20px rgba(90, 220, 120, 0.35);
+    }
+
+    .node.researched {
+      border-color: rgba(90, 220, 120, 1);
+      box-shadow: 0 0 24px rgba(90, 220, 120, 0.45);
+    }
+
+    .node.researched .node-status {
+      color: rgba(140, 255, 180, 0.9);
+    }
+
+    .node.locked {
+      opacity: 0.55;
+      filter: grayscale(0.2);
+    }
+
+    .node.locked .node-status {
+      color: rgba(255, 160, 160, 0.8);
+    }
+
+    .node.eco {
+      border-color: rgba(120, 220, 140, 0.7);
+      box-shadow: 0 0 18px rgba(120, 220, 140, 0.25);
+    }
+
+    .node.industrial {
+      border-color: rgba(255, 170, 60, 0.7);
+      box-shadow: 0 0 18px rgba(255, 170, 60, 0.25);
+    }
+
+    .node.nuclear {
+      border-color: rgba(255, 90, 90, 0.7);
+      box-shadow: 0 0 18px rgba(255, 90, 90, 0.25);
+    }
+
+    .tech-stats {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.15);
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .mods-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 90px 12px 60px;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        margin-bottom: 24px;
+      }
+
+      .tree-wrap {
+        height: min(65vh, 620px);
+        padding: 10px;
+      }
+
+      .node {
+        min-width: 150px;
+        padding: 10px 12px;
+      }
+
+      .node-title {
+        font-size: 14px;
+      }
+
+      .top-nav {
+        left: 12px;
+        right: 12px;
+        top: 16px;
+      }
+
+      .nav-btn {
+        font-size: 13px;
+        padding: 8px 12px;
+      }
+    }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background-color: rgb(90, 90, 90);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-top-color: #4caf50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .top-nav {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      right: 25px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .nav-btn {
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-btn:hover {
+      background: rgba(0,0,0,0.55);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Атмосферные эффекты -->
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="leaves" aria-hidden="true"></div>
+  <div class="smoke" aria-hidden="true"></div>
+
+  <div class="top-nav">
+    <a href="Main Files/index.html" class="nav-btn">Back to Game →</a>
+  </div>
+
+  <div class="container">
+    <h1>Technology Tree</h1>
+    <div class="subtitle">Research the future of your city</div>
+    <div class="legend">Все технологии требуют монеты и население — требования указаны на карточках.</div>
+    <div class="tech-stats" id="techStats">Loading save data...</div>
+
+    <div class="tree-wrap" id="treeWrap">
+      <div class="tree-pan" id="treePan">
+        <div class="tree-title">Core Technologies</div>
+        <div class="tree">
+          <ul>
+            <li>
+              <div class="node" data-req-pop="800" data-req-coins="2000">
+                <div class="node-title">Small Market</div>
+                <div class="node-req">Population: 800</div>
+                <div class="node-req">Cost: 2,000</div>
+              </div>
+              <ul>
+                <li>
+                  <div class="node" data-req-pop="1500" data-req-coins="1000">
+                    <div class="node-title">Medium Market</div>
+                    <div class="node-req">Population: 1,500</div>
+                    <div class="node-req">Cost: 1,000</div>
+                  </div>
+                  <ul>
+                    <li>
+                      <div class="node" data-req-pop="2500" data-req-coins="3000">
+                        <div class="node-title">Big Market</div>
+                        <div class="node-req">Population: 2,500</div>
+                        <div class="node-req">Cost: 3,000</div>
+                      </div>
+                      <ul>
+                        <li>
+                          <div class="node" data-req-pop="4000" data-req-coins="10000">
+                            <div class="node-title">Industrialisation</div>
+                            <div class="node-req">Population: 4,000</div>
+                            <div class="node-req">Cost: 10,000</div>
+                          </div>
+                          <ul>
+                            <li>
+                              <div class="node eco" data-req-pop="3500" data-req-coins="8000">
+                                <div class="node-title">Eco Tech</div>
+                                <div class="node-req">Population: 3,500</div>
+                                <div class="node-req">Cost: 8,000</div>
+                              </div>
+                              <ul>
+                                <li>
+                                  <div class="node eco" data-req-pop="5000" data-req-coins="10,000">
+                                    <div class="node-title">Farm</div>
+                                    <div class="node-req">Population: 5,000</div>
+                                    <div class="node-req">Cost: 10,000</div>
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <div class="node eco" data-req-pop="6500" data-req-coins="12000">
+                                        <div class="node-title">Pollution Treatment Plant</div>
+                                        <div class="node-req">Population: 6,500</div>
+                                        <div class="node-req">Cost: 28,000</div>
+                                      </div>
+                                      <ul>
+                                        <li>
+                                          <div class="node eco" data-req-pop="6500" data-req-coins="14000">
+                                            <div class="node-title">Environmental Cleanup Facility</div>
+                                            <div class="node-req">Population: 6500</div>
+                                            <div class="node-req">Cost: 14,000</div>
+                                          </div>
+                                          <ul>
+                                            <li>
+                                              <div class="node eco" data-req-pop="7000" data-req-coins="19000">
+                                                <div class="node-title">Planetary Cleanser</div>
+                                                <div class="node-req">Population: 7,000</div>
+                                                <div class="node-req">Cost: 19,000</div>
+                                              </div>
+                                            </li>
+                                          </ul>
+                                        </li>
+                                      </ul>
+                                    </li>
+                                  </ul>
+                                </li>
+                              </ul>
+                            </li>
+                            <li>
+                              <div class="node industrial" data-req-pop="4500" data-req-coins="12000" data-choice-group="industrialisation-path" data-choice-id="mass-production">
+                                <div class="node-title">Mass Production</div>
+                                <div class="node-req">Population: 4,500</div>
+                                <div class="node-req">Cost: 12,000</div>
+                                <div class="node-req">+10% income, +10% pollution</div>
+                              </div>
+                              <ul>
+                                <li>
+                                  <div class="node industrial" data-req-pop="5500" data-req-coins="20000">
+                                    <div class="node-title">Overclocked Production</div>
+                                    <div class="node-req">Population: 5,500</div>
+                                    <div class="node-req">Cost: 20,000</div>
+                                    <div class="node-req">+10% income, +10% pollution</div>
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <div class="node industrial" data-req-pop="7000" data-req-coins="35000">
+                                        <div class="node-title">Mega Production Line</div>
+                                        <div class="node-req">Population: 7,000</div>
+                                        <div class="node-req">Cost: 35,000</div>
+                                        <div class="node-req">+10% income, +10% pollution</div>
+                                      </div>
+                                    </li>
+                                  </ul>
+                                </li>
+                              </ul>
+                            </li>
+                            <li>
+                              <div class="node industrial" data-req-pop="4500" data-req-coins="12000" data-choice-group="industrialisation-path" data-choice-id="advanced-security-system">
+                                <div class="node-title">Advanced Security System</div>
+                                <div class="node-req">Population: 4,500</div>
+                                <div class="node-req">Cost: 12,000</div>
+                                <div class="node-req">+10% population growth, -30% income</div>
+                              </div>
+                              <ul>
+                                <li>
+                                  <div class="node industrial" data-req-pop="6000" data-req-coins="24000">
+                                    <div class="node-title">Expensive Security System</div>
+                                    <div class="node-req">Population: 6,000</div>
+                                    <div class="node-req">Cost: 24,000</div>
+                                    <div class="node-req">+10% population growth, -30% income</div>
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <div class="node industrial" data-req-pop="8000" data-req-coins="40000">
+                                        <div class="node-title">Total Surveillance Network</div>
+                                        <div class="node-req">Population: 8,000</div>
+                                        <div class="node-req">Cost: 40,000</div>
+                                        <div class="node-req">+10% population growth, -30% income</div>
+                                      </div>
+                                    </li>
+                                  </ul>
+                                </li>
+                              </ul>
+                            </li>
+                            <li>
+                              <div class="node eco" data-req-pop="4500" data-req-coins="12000" data-choice-group="industrialisation-path" data-choice-id="eco-expansion">
+                                <div class="node-title">Eco Expansion</div>
+                                <div class="node-req">Population: 4,500</div>
+                                <div class="node-req">Cost: 12,000</div>
+                                <div class="node-req">-10% pollution, -15% income</div>
+                              </div>
+                              <ul>
+                                <li>
+                                  <div class="node eco" data-req-pop="6000" data-req-coins="22000">
+                                    <div class="node-title">Improved Cleaning System</div>
+                                    <div class="node-req">Population: 6,000</div>
+                                    <div class="node-req">Cost: 22,000</div>
+                                    <div class="node-req">-10% pollution, -15% income</div>
+                                  </div>
+                                </li>
+                              </ul>
+                            </li>
+                            <li>
+                              <div class="node industrial" data-req-pop="4500" data-req-coins="10000">
+                                <div class="node-title">Industrial Tech</div>
+                                <div class="node-req">Population: 4,500</div>
+                                <div class="node-req">Cost: 10,000</div>
+                              </div>
+                              <ul>
+                                <li>
+                                  <div class="node industrial" data-req-pop="5000" data-req-coins="15000">
+                                    <div class="node-title">Coal Power Plant</div>
+                                    <div class="node-req">Population: 5,000</div>
+                                    <div class="node-req">Cost: 15,000</div>
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <div class="node industrial" data-req-pop="5600" data-req-coins="25000">
+                                        <div class="node-title">Small Factory</div>
+                                        <div class="node-req">Population: 5,600</div>
+                                        <div class="node-req">Cost: 25,000</div>
+                                      </div>
+                                      <ul>
+                                        <li>
+                                          <div class="node industrial" data-req-pop="6500" data-req-coins="40000">
+                                            <div class="node-title">Medium Factory</div>
+                                            <div class="node-req">Population: 6,500</div>
+                                            <div class="node-req">Cost: 40,000</div>
+                                          </div>
+                                          <ul>
+                                            <li>
+                                              <div class="node industrial" data-req-pop="8000" data-req-coins="76000">
+                                                <div class="node-title">Big Factory</div>
+                                                <div class="node-req">Population: 8,000</div>
+                                                <div class="node-req">Cost: 76,000</div>
+                                              </div>
+                                              <ul>
+                                                <li>
+                                                  <div class="node nuclear" data-req-pop="10000" data-req-coins="150000">
+                                                    <div class="node-title">Nuclear Power Tech</div>
+                                                    <div class="node-req">Population: 10,000</div>
+                                                    <div class="node-req">Cost: 150,000</div>
+                                                  </div>
+                                                  <ul>
+                                                    <li>
+                                                      <div class="node nuclear" data-req-pop="12000" data-req-coins="200000">
+                                                        <div class="node-title">Nuclear Power Plant</div>
+                                                        <div class="node-req">Population: 12,000</div>
+                                                        <div class="node-req">Cost: 200,000</div>
+                                                      </div>
+                                                      <ul>
+                                                        <li>
+                                                          <div class="node nuclear" data-req-pop="15000" data-req-coins="300000">
+                                                            <div class="node-title">Antimatter Reactor</div>
+                                                            <div class="node-req">Population: 15,000</div>
+                                                            <div class="node-req">Cost: 300,000</div>
+                                                          </div>
+                                                        </li>
+                                                      </ul>
+                                                    </li>
+                                                  </ul>
+                                                </li>
+                                                <li>
+                                                  <div class="node industrial" data-req-pop="9000" data-req-coins="50000">
+                                                    <div class="node-title">Industrialisation Tech</div>
+                                                    <div class="node-req">Population: 9,000</div>
+                                                    <div class="node-req">Cost: 50,000</div>
+                                                  </div>
+                                                  <ul>
+                                                    <li>
+                                                      <div class="node industrial" data-req-pop="10000" data-req-coins="140000">
+                                                        <div class="node-title">Oil Refinery</div>
+                                                        <div class="node-req">Population: 10,000</div>
+                                                        <div class="node-req">Cost: 140,000</div>
+                                                      </div>
+                                                    </li>
+                                                  </ul>
+                                                </li>
+                                              </ul>
+                                            </li>
+                                          </ul>
+                                        </li>
+                                      </ul>
+                                    </li>
+                                  </ul>
+                                </li>
+                              </ul>
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div id="modsTree">
+          <div class="tree-title">Mods</div>
+          <div class="mods-note" id="modsNote">Optional branch unlocked by enabled mods.</div>
+          <div class="tree">
+            <ul>
+              <li>
+                <div class="node">
+                  <div class="node-title">Mods</div>
+                  <div class="node-req">Optional branch</div>
+                </div>
+                <ul>
+                  <li>
+                    <div class="node eco" data-req-mod="renewable-expansion">
+                      <div class="node-title">Renewable Expansion</div>
+                      <div class="node-req">Requires mod: Renewable Expansion</div>
+                    </div>
+                    <ul>
+                      <li>
+                        <div class="node eco" data-req-mod="renewable-expansion">
+                          <div class="node-title">Solar Array</div>
+                          <div class="node-req">Requires mod: Renewable Expansion</div>
+                        </div>
+                      </li>
+                      <li>
+                        <div class="node eco" data-req-mod="renewable-expansion">
+                          <div class="node-title">Wind Turbine</div>
+                          <div class="node-req">Requires mod: Renewable Expansion</div>
+                        </div>
+                      </li>
+                      <li>
+                        <div class="node eco" data-req-mod="renewable-expansion">
+                          <div class="node-title">Recycling Center</div>
+                          <div class="node-req">Requires mod: Renewable Expansion</div>
+                        </div>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <div class="node industrial" data-req-mod="industrial-expansion">
+                      <div class="node-title">Industrial Expansion</div>
+                      <div class="node-req">Requires mod: Industrial Expansion</div>
+                    </div>
+                    <ul>
+                      <li>
+                        <div class="node industrial" data-req-mod="industrial-expansion">
+                          <div class="node-title">Steel Foundry</div>
+                          <div class="node-req">Requires mod: Industrial Expansion</div>
+                        </div>
+                      </li>
+                      <li>
+                        <div class="node industrial" data-req-mod="industrial-expansion">
+                          <div class="node-title">Mega Plant</div>
+                          <div class="node-req">Requires mod: Industrial Expansion</div>
+                        </div>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экран загрузки -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="spinner"></div>
+    <div>Loading Technologies...</div>
+  </div>
+
+  <script>
+    // === Простая имитация загрузки ===
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        document.getElementById("loadingScreen").classList.add("hidden");
+      }, 1000); 
+    });
+
+    // Случайный фон 
+    const bgClasses = ["clean", "lesspolluted", "polluted", "lessdirty", "dirty", "toxic", "dead"];
+    const randomBg = bgClasses[Math.floor(Math.random() * bgClasses.length)];
+    document.body.classList.add(randomBg);
+
+    // Добавляем немного ambient частиц (как в лобби)
+    const ambient = document.querySelector(".ambient");
+    for (let i = 0; i < 12; i++) {
+      const particle = document.createElement("span");
+      particle.style.left = Math.random() * 100 + "%";
+      particle.style.animationDuration = (15 + Math.random() * 12) + "s";
+      particle.style.animationDelay = "-" + Math.random() * 15 + "s";
+      ambient.appendChild(particle);
+    }
+
+    const SAVE_KEY_PREFIX = "idleGameSave_slot";
+    const ACTIVE_SLOT_KEY = "idleGameActiveSlot";
+    const LEGACY_SAVE_KEY = "idleGameSave";
+    const MOD_STATE_KEY = "ecoIdleModState";
+    const TECH_STATE_PREFIX = "ecoIdleTechState_slot";
+    const TECH_STATE_LEGACY = "ecoIdleTechState_legacy";
+    const numberFormatter = new Intl.NumberFormat("en-US");
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return "0";
+      return numberFormatter.format(Math.max(0, Math.floor(value)));
+    }
+
+    function parseRequirementValue(value) {
+      if (value === undefined || value === null) return 0;
+      const cleaned = String(value).replace(/,/g, "").trim();
+      const num = Number(cleaned);
+      return Number.isFinite(num) ? num : 0;
+    }
+
+    function readActiveSave() {
+      const slot = Number(localStorage.getItem(ACTIVE_SLOT_KEY)) || 1;
+      const key = `${SAVE_KEY_PREFIX}${slot}`;
+      let save = null;
+      try {
+        save = JSON.parse(localStorage.getItem(key) || "null");
+      } catch {
+        save = null;
+      }
+      if (!save) {
+        try {
+          save = JSON.parse(localStorage.getItem(LEGACY_SAVE_KEY) || "null");
+        } catch {
+          save = null;
+        }
+        if (save) {
+          return { slot: "Legacy", save };
+        }
+      }
+      return { slot, save };
+    }
+
+    function writeActiveSave(slot, save) {
+      const key = slot === "Legacy" ? LEGACY_SAVE_KEY : `${SAVE_KEY_PREFIX}${slot}`;
+      localStorage.setItem(key, JSON.stringify(save));
+    }
+
+    function getTechStateKey(slot) {
+      return slot === "Legacy" ? TECH_STATE_LEGACY : `${TECH_STATE_PREFIX}${slot}`;
+    }
+
+    function loadTechState(slot) {
+      let state = null;
+      try {
+        state = JSON.parse(localStorage.getItem(getTechStateKey(slot)) || "null");
+      } catch {
+        state = null;
+      }
+      if (!state || typeof state !== "object") state = {};
+      if (!state.researched || typeof state.researched !== "object") {
+        state.researched = {};
+      }
+      if (!state.choices || typeof state.choices !== "object") {
+        state.choices = {};
+      }
+      if (!state.researched["small-market"]) {
+        state.researched["small-market"] = true;
+        localStorage.setItem(getTechStateKey(slot), JSON.stringify(state));
+      }
+      return state;
+    }
+
+    function saveTechState(slot, state) {
+      localStorage.setItem(getTechStateKey(slot), JSON.stringify(state));
+    }
+
+    function readModState() {
+      let state = {};
+      try {
+        state = JSON.parse(localStorage.getItem(MOD_STATE_KEY) || "{}");
+      } catch {
+        state = {};
+      }
+      if (!state || typeof state !== "object") state = {};
+      return state;
+    }
+
+    const statsEl = document.getElementById("techStats");
+    const modsTree = document.getElementById("modsTree");
+    const modsNote = document.getElementById("modsNote");
+    const TECH_ID_BY_TITLE = {
+      "Small Market": "small-market",
+      "Medium Market": "medium-market",
+      "Big Market": "big-market",
+      "Industrialisation": "industrialisation",
+      "Mass Production": "mass-production",
+      "Overclocked Production": "overclocked-production",
+      "Mega Production Line": "mega-production-line",
+      "Advanced Security System": "advanced-security-system",
+      "Expensive Security System": "expensive-security-system",
+      "Total Surveillance Network": "total-surveillance-network",
+      "Eco Expansion": "eco-expansion",
+      "Improved Cleaning System": "improved-cleaning-system",
+      "Eco Tech": "eco-tech",
+      "Farm": "farm",
+      "Pollution Treatment Plant": "pollution-treatment",
+      "Environmental Cleanup Facility": "environmental-cleanup",
+      "Planetary Cleanser": "planetary-cleanser",
+      "Industrial Tech": "industrial-tech",
+      "Coal Power Plant": "coal-power-plant",
+      "Small Factory": "small-factory",
+      "Medium Factory": "medium-factory",
+      "Big Factory": "big-factory",
+      "Nuclear Power Tech": "nuclear-power-tech",
+      "Nuclear Power Plant": "nuclear-power-plant",
+      "Antimatter Reactor": "antimatter-reactor",
+      "Industrialisation Tech": "industrialisation-tech",
+      "Oil Refinery": "oil-refinery",
+      "Renewable Expansion": "renewable-expansion",
+      "Solar Array": "solar-array",
+      "Wind Turbine": "wind-turbine",
+      "Recycling Center": "recycling-center",
+      "Industrial Expansion": "industrial-expansion",
+      "Steel Foundry": "steel-foundry",
+      "Mega Plant": "mega-plant"
+    };
+    const nodes = Array.from(document.querySelectorAll(".node"));
+    nodes.forEach((node) => {
+      const title = node.querySelector(".node-title")?.textContent?.trim() || "";
+      const techId = TECH_ID_BY_TITLE[title];
+      if (techId) {
+        node.dataset.techId = techId;
+      }
+      if (!node.querySelector(".node-status")) {
+        const status = document.createElement("div");
+        status.className = "node-status";
+        node.appendChild(status);
+      }
+    });
+
+    function getParentNode(node) {
+      const li = node.closest("li");
+      const parentLi = li?.parentElement?.closest("li");
+      if (!parentLi) return null;
+      return parentLi.querySelector(":scope > .node");
+    }
+
+    function updateModVisibility(modState) {
+      const enabledMods = Object.keys(modState).filter((id) => modState[id]?.enabled);
+      const enabledSet = new Set(enabledMods);
+      const modNodes = document.querySelectorAll("[data-req-mod]");
+      modNodes.forEach((node) => {
+        const modId = node.dataset.reqMod;
+        const li = node.closest("li");
+        if (!li) return;
+        li.style.display = enabledSet.has(modId) ? "" : "none";
+      });
+      const showMods = enabledSet.size > 0;
+      if (modsTree) modsTree.style.display = showMods ? "" : "none";
+      if (modsNote) modsNote.style.display = showMods ? "" : "none";
+    }
+
+    function updateAvailability(coins, population, modState, techState) {
+      nodes.forEach((node) => {
+        const techId = node.dataset.techId;
+        const reqCoins = parseRequirementValue(node.dataset.reqCoins);
+        const reqPop = parseRequirementValue(node.dataset.reqPop);
+        const reqMod = node.dataset.reqMod;
+        const choiceGroup = node.dataset.choiceGroup;
+        const choiceId = node.dataset.choiceId;
+        const chosenPath = choiceGroup ? techState.choices?.[choiceGroup] : null;
+        const choiceLocked = Boolean(chosenPath && choiceId && chosenPath !== choiceId);
+        const statusEl = node.querySelector(".node-status");
+        const parentNode = getParentNode(node);
+        const parentTechId = parentNode?.dataset.techId;
+        const parentResearched = parentTechId ? Boolean(techState.researched[parentTechId]) : true;
+
+        node.classList.remove("available", "locked", "researched");
+
+        if (!techId && reqCoins === 0 && reqPop === 0 && !reqMod) {
+          if (statusEl) statusEl.textContent = "";
+          return;
+        }
+
+        const researched = techId ? Boolean(techState.researched[techId]) : false;
+        if (researched) {
+          node.classList.add("researched");
+          if (statusEl) statusEl.textContent = "RESEARCHED";
+          return;
+        }
+
+        let ok = true;
+        if (!parentResearched) ok = false;
+        if (reqCoins > 0 && coins < reqCoins) ok = false;
+        if (reqPop > 0 && population < reqPop) ok = false;
+        if (choiceLocked) ok = false;
+        if (reqMod) {
+          const modEntry = modState[reqMod];
+          const hasMod = Boolean(modEntry && modEntry.enabled);
+          if (!hasMod) ok = false;
+        }
+
+        node.classList.toggle("available", ok);
+        node.classList.toggle("locked", !ok);
+        if (statusEl) {
+          statusEl.textContent = ok ? "CLICK TO RESEARCH" : (choiceLocked ? "LOCKED (OTHER PATH)" : "LOCKED");
+        }
+      });
+    }
+
+    let currentSlot = null;
+    let currentTechState = null;
+    let techNotice = "";
+    let techNoticeUntil = 0;
+    let draggedRecently = false;
+
+    function setTechNotice(message) {
+      techNotice = message;
+      techNoticeUntil = Date.now() + 2500;
+    }
+
+    function refreshTechData() {
+      const { slot, save } = readActiveSave();
+      currentSlot = slot;
+      currentTechState = loadTechState(slot);
+      const coins = save?.coins ?? 0;
+      const population = save?.population ?? 0;
+
+      let line = "";
+      if (!save) {
+        line = "No save found. Start the game to see live requirements.";
+      } else {
+        line = `Slot ${slot} • Coins: ${formatNumber(coins)} • Population: ${formatNumber(population)}`;
+      }
+
+      if (techNotice && Date.now() < techNoticeUntil) {
+        line = `${line} • ${techNotice}`;
+      } else {
+        techNotice = "";
+      }
+      statsEl.textContent = line;
+
+      const modState = readModState();
+      updateModVisibility(modState);
+      updateAvailability(coins, population, modState, currentTechState);
+    }
+
+    function attemptResearch(node) {
+      const techId = node.dataset.techId;
+      if (!techId) return;
+
+      const { slot, save } = readActiveSave();
+      if (!save) {
+        setTechNotice("Start the game to unlock research.");
+        return;
+      }
+
+      const techState = loadTechState(slot);
+      if (techState.researched[techId]) return;
+
+      const reqCoins = parseRequirementValue(node.dataset.reqCoins);
+      const reqPop = parseRequirementValue(node.dataset.reqPop);
+      const reqMod = node.dataset.reqMod;
+      const choiceGroup = node.dataset.choiceGroup;
+      const choiceId = node.dataset.choiceId;
+      const parentNode = getParentNode(node);
+      const parentTechId = parentNode?.dataset.techId;
+
+      if (parentTechId && !techState.researched[parentTechId]) {
+        setTechNotice("Research the parent technology first.");
+        return;
+      }
+
+      if (choiceGroup) {
+        const chosenPath = techState.choices?.[choiceGroup];
+        if (chosenPath && chosenPath !== choiceId) {
+          setTechNotice("You already chose another Industrialisation path.");
+          return;
+        }
+      }
+
+      const modState = readModState();
+      if (reqMod && !modState[reqMod]?.enabled) {
+        setTechNotice("Enable the required mod first.");
+        return;
+      }
+
+      const coins = save.coins ?? 0;
+      const population = save.population ?? 0;
+      if (reqCoins > 0 && coins < reqCoins) {
+        setTechNotice("Not enough coins.");
+        return;
+      }
+      if (reqPop > 0 && population < reqPop) {
+        setTechNotice("Not enough population.");
+        return;
+      }
+
+      if (reqCoins > 0) {
+        save.coins = Math.max(0, coins - reqCoins);
+        writeActiveSave(slot, save);
+      }
+
+      techState.researched[techId] = true;
+      if (choiceGroup && choiceId) {
+        techState.choices[choiceGroup] = choiceId;
+      }
+      saveTechState(slot, techState);
+      setTechNotice(`Researched: ${node.querySelector(".node-title")?.textContent?.trim() || techId}`);
+      refreshTechData();
+    }
+
+    refreshTechData();
+    setInterval(refreshTechData, 1000);
+
+    const treeWrap = document.getElementById("treeWrap");
+    const treePan = document.getElementById("treePan");
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let panX = 0;
+    let panY = 0;
+    let pointerDownNode = null;
+    let dragDistance = 0;
+
+    if (treeWrap && treePan) {
+      treeWrap.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        isDragging = true;
+        draggedRecently = false;
+        pointerDownNode = event.target.closest(".node");
+        dragDistance = 0;
+        treeWrap.classList.add("dragging");
+        startX = event.clientX - panX;
+        startY = event.clientY - panY;
+        treeWrap.setPointerCapture(event.pointerId);
+      });
+
+      treeWrap.addEventListener("pointermove", (event) => {
+        if (!isDragging) return;
+        dragDistance += Math.abs(event.movementX) + Math.abs(event.movementY);
+        if (dragDistance > 4) draggedRecently = true;
+        panX = event.clientX - startX;
+        panY = event.clientY - startY;
+        treePan.style.setProperty("--pan-x", `${panX}px`);
+        treePan.style.setProperty("--pan-y", `${panY}px`);
+      });
+
+      const stopDrag = (event) => {
+        if (!isDragging) return;
+        isDragging = false;
+        treeWrap.classList.remove("dragging");
+        const clickedNode = pointerDownNode;
+        pointerDownNode = null;
+        const wasDrag = draggedRecently;
+        draggedRecently = false;
+        if (!wasDrag && clickedNode) {
+          attemptResearch(clickedNode);
+        }
+        try {
+          treeWrap.releasePointerCapture(event.pointerId);
+        } catch {}
+      };
+
+      treeWrap.addEventListener("pointerup", stopDrag);
+      treeWrap.addEventListener("pointercancel", stopDrag);
+      treeWrap.addEventListener("pointerleave", stopDrag);
+    }
+  </script>
+</body>
+</html>

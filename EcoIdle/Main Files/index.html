@@ -1,0 +1,2102 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Idle Game</title>
+
+<style>
+body {
+    margin: 0;
+    min-height: 100vh;
+    height: auto;
+    padding: 140px 20px 160px;
+    background-color: rgb(90, 90, 90);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    color: white;
+    transition: background-color 1s;
+    box-sizing: border-box;
+}
+
+body.clean {
+    background-color: #5a8f5a;
+}
+
+body.lesspolluted {
+    background-color: #658f2a;
+}
+
+body.polluted {
+    background-color: #7a7a3a;
+}
+
+body.lessdirty {
+    background-color: #7a613a;
+}
+body.dirty {
+    background-color: #5f4a3a;
+}
+
+body.toxic {
+    background-color: #3a3a3a;
+}
+body.dead {
+    background-color: rgb(34, 34, 34);
+}
+
+.game.shake {
+    animation: reactorShake 0.55s linear;
+}
+
+@keyframes reactorShake {
+    0% { transform: translate(0, 0); }
+    10% { transform: translate(-6px, 4px); }
+    20% { transform: translate(6px, -4px); }
+    30% { transform: translate(-5px, -3px); }
+    40% { transform: translate(5px, 3px); }
+    50% { transform: translate(-4px, 2px); }
+    60% { transform: translate(4px, -2px); }
+    70% { transform: translate(-3px, 1px); }
+    80% { transform: translate(3px, -1px); }
+    90% { transform: translate(-2px, 1px); }
+    100% { transform: translate(0, 0); }
+}
+
+#flash {
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1200;
+}
+
+body.flash #flash {
+    animation: reactorFlash 0.6s ease;
+}
+
+@keyframes reactorFlash {
+    0% { opacity: 0; }
+    15% { opacity: 0.9; }
+    100% { opacity: 0; }
+}
+
+.game {
+    background: #2e2e2e;
+    padding: 45px;
+    border-radius: 12px;
+    width: min(92vw, 420px);
+    text-align: center;
+    background: linear-gradient(145deg, #2e2e2e, #3a3a3a);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    padding: 45px;
+    border-radius: 20px;
+    position: relative;
+}
+
+.resource {
+    font-size: 18px;
+    margin: 6px 0;
+}
+
+.resource.small {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.status-wrap {
+    margin: 12px 0;
+    text-align: left;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.meter {
+    width: 100%;
+    height: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #62d96b, #e6b422, #d94d4d);
+    transition: width 0.3s ease;
+}
+
+.event-log {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: left;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+
+.mods-status {
+    margin: 8px 0 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 12px;
+    color: #f1f1f1;
+    opacity: 0.9;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.mod-only {
+    display: none;
+}
+
+.mod-only-block {
+    display: none;
+}
+
+body.mod-content .mod-only {
+    display: inline;
+}
+
+body.mod-content .mod-only-block {
+    display: block;
+}
+
+body.mod-shader .game {
+    background: linear-gradient(155deg, #242424, #34344a);
+    box-shadow: 0 12px 26px rgba(0,0,0,0.55), 0 0 18px rgba(120, 140, 255, 0.18);
+}
+
+body.mod-shader .game::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 20% 10%, rgba(120, 160, 255, 0.2), transparent 55%),
+        radial-gradient(circle at 80% 90%, rgba(140, 220, 255, 0.15), transparent 60%);
+    pointer-events: none;
+}
+
+body.mod-ui .game {
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+body.mod-ui .status-wrap {
+    background: rgba(255,255,255,0.1);
+}
+
+.event-item {
+    margin: 4px 0;
+    border-left: 2px solid rgba(255,255,255,0.35);
+    padding-left: 6px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    background: #4caf50;
+    color: white;
+}
+
+button:disabled {
+    background: #777;
+    cursor: not-allowed;
+}
+
+.box {
+    background: #2e2e2e;
+    padding: 25px;
+    border-radius: 12px;
+    width: 300px;
+    text-align: center;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.category-bar {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0 6px;
+    width: 100%;
+}
+
+.category-bar button {
+    flex: 1;
+    padding: 8px 6px;
+    margin-top: 0;
+    font-size: 13px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.category-bar button.active {
+    background: #4caf50;
+    border-color: #4caf50;
+}
+
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    background-color: rgb(90, 90, 90);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+}
+
+.loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.info-toggle {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.info-toggle span {
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    opacity: 0.9;
+}
+
+.info-panel {
+    margin: 10px 0 12px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    text-align: left;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 10px;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    -webkit-overflow-scrolling: touch;
+}
+
+.info-panel.open {
+    max-height: min(360px, 55vh);
+    padding: 8px 10px;
+    overflow-y: auto;
+}
+
+.info-panel .resource {
+    margin: 4px 0;
+}
+
+.top-links {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 4px;
+}
+
+.top-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.top-links a:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.page-wrap {
+    width: min(94vw, 900px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+}
+
+.page-section {
+    width: min(92vw, 720px);
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.28);
+}
+
+.page-section h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.page-section p {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #f0f0f0;
+}
+
+.page-section ul {
+    margin: 10px 0 0 18px;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.page-section li {
+    margin: 6px 0;
+}
+
+.back-top {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.back-top:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Контейнер дыма */
+#smoke {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+    display: none;
+}
+
+/* Одна частица дыма */
+.smoke-particle {
+    position: absolute;
+    bottom: -100px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(180,180,180,0.35) 0%, rgba(180,180,180,0.15) 40%, transparent 70%);
+    border-radius: 50%;
+    animation: smokeRise linear infinite;
+    filter: blur(8px);
+}
+
+@keyframes smokeRise {
+    0% {
+        transform: translateY(0) translateX(0) scale(0.8);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-120vh) translateX(200px) scale(1.8);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 720px) {
+    body {
+        height: auto;
+        padding: 100px 12px 80px;
+        align-items: center;
+    }
+
+    .game {
+        padding: 26px 18px;
+        border-radius: 16px;
+    }
+
+    .resource {
+        font-size: 16px;
+    }
+
+    .resource.small {
+        font-size: 12px;
+    }
+
+    button {
+        font-size: 14px;
+        padding: 9px 10px;
+    }
+
+    .category-bar {
+        flex-wrap: wrap;
+    }
+
+    .category-bar button {
+        flex: 1 1 46%;
+        font-size: 12px;
+    }
+
+    .button-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .event-log {
+        max-height: 160px;
+    }
+
+    .info-panel.open {
+        max-height: min(300px, 50vh);
+    }
+}
+
+@media (max-width: 420px) {
+    .game {
+        padding: 22px 14px;
+    }
+
+    .button-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+</style>
+</head>
+
+<body>
+
+<audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
+
+<div id="loadingScreen" class="loading-screen">Loading...</div>
+<div id="flash" aria-hidden="true"></div>
+
+<div class="page-wrap" id="top">
+<div class="game">
+    <h1>Idle Game</h1>
+    <div class="top-links">
+        <a href="../Tech.html">Tech Tree</a>
+    </div>
+
+    <button class="info-toggle" id="infoToggle" aria-label="Toggle info" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <div class="resource">💰 Coins: <span id="coins">0</span></div>
+    <div class="resource">🌫 Pollution: <span id="pollution">0</span></div>
+    <div class="resource">📅 Days: <span id="days">0</span></div>
+
+    <div class="info-panel" id="infoPanel">
+        <div class="resource">population: <span id="population">1000</span></div>  
+        <div class="resource">population growth: <span id="populationPS">50</span></div>  
+        <div class="resource">Taxs: <span id="minuscoins">10</span></div>
+        <div class="resource">Coins: +<span id="perSecond">0</span>/sec</div>
+        <div class="resource small">Multiplier: x<span id="multiplier">1.00</span></div>
+        <div class="resource">Pollution: +<span id="pollutionPerSec">0</span>/tick</div>
+        <div class="resource">pollution reduction: -<span id="pollutionReduction">0</span>/tick</div>
+        <div class="resource small">Owned: Coal <span id="coalCount">0</span> | S <span id="smallFactoryCount">0</span> | M <span id="mediumFactoryCount">0</span> | B <span id="bigFactoryCount">0</span> | Oil <span id="oilCount">0</span> | Nuke <span id="nuclearCount">0</span><span class="mod-only"> | Solar <span id="solarCount">0</span> | Wind <span id="windCount">0</span> | Recycle <span id="recyclerCount">0</span> | Foundry <span id="foundryCount">0</span> | Mega <span id="megaCount">0</span></span></div>
+        <div class="resource small">Goal: reach <span id="nextMilestone">5,000</span> coins for reward</div>
+    </div>
+
+    <div class="status-wrap">
+        <div class="resource small">Eco status: <span id="ecoStatus">Clean</span></div>
+        <div class="meter"><div id="pollutionMeter" class="meter-fill"></div></div>
+    </div>
+    <div class="mods-status">Mods: <span id="activeMods">None</span></div>
+
+    <button onclick="clickCoin()">Click</button>
+
+    <div class="category-bar" id="categoryBar">
+        <button type="button" data-filter="all" class="active">Все</button>
+        <button type="button" data-filter="polluting">Загрязняющие</button>
+        <button type="button" data-filter="cleaning">Очищающие</button>
+        <button type="button" data-filter="other">Прочее</button>
+        <button type="button" data-filter="polite">политические</button>
+    </div>
+
+    <div class="button-grid">
+        <button onclick="buyUpgrade()" id="upgradeBtn" data-category="other">Small Market (+1/sec) - <span id="upgradeCost">10</span></button>
+        <button onclick="buyMarket()" id="MarketBtn" data-category="other">Medium Market (+2/sec) - <span id="MarketCost">15</span></button>
+        <button onclick="buyBigMarket()" id="BMarketBtn" data-category="other">Big Market (+4/sec) - <span id="BMarketCost">100</span></button>
+        <button onclick="buyCoal()" id="CoalBtn" data-category="polluting">Coal Power Plant (+8/sec) - <span id="CoalCost">150</span></button>
+        <button onclick="buySFactory()" id="SfactoryBtn" data-category="polluting">Small Factory (+10/sec) - <span id="SfactoryCost">300</span></button>
+        <button onclick="buyMFactory()" id="MfactoryBtn" data-category="polluting">Medium Factory (+20/sec) - <span id="MfactoryCost">500</span></button>
+        <button onclick="buyBFactory()" id="BfactoryBtn" data-category="polluting">Big Factory (+40/sec) - <span id="BfactoryCost">800</span></button>
+        <button onclick="buyOil()" id="OilBtn" data-category="polluting">Oil Refinery (+60/sec) - <span id="OilCost">800</span></button>
+        <button onclick="buyNuclear()" id="NuclearBtn" data-category="polluting">Nuclear power plant (+100/sec) - <span id="NuclearCost">3000</span></button>
+        <button onclick="buyNuclear2()" id="Nuclear2Btn" data-category="polluting">Antimatter Reactor(+300/sec) - <span id="Nuclear2Cost">6000</span></button>
+        <button onclick="buyFoundry()" id="FoundryBtn" class="mod-only-block hidden" data-category="polluting" data-mod="industrial">Steel Foundry (+120/sec) - <span id="FoundryCost">2200</span></button>
+        <button onclick="buyMegaPlant()" id="MegaBtn" class="mod-only-block hidden" data-category="polluting" data-mod="industrial">Mega Plant (+220/sec) - <span id="MegaCost">4200</span></button>
+        <button onclick="buyPlusCoins()" id="pCoinsBtn" data-category="other">Reduce fines (-5) - <span id="pCoinsCost">200</span></button>
+        <button onclick="buyFarm()" id="FarmBtn" data-category="cleaning">Farm (-0.5 pollution) - <span id="FarmCost">100</span></button>
+        <button onclick="buyMP()" id="MPBtn" data-category="cleaning">Pollution treatment plant (-1 pollution) - <span id="MPCost">500</span></button>
+        <button onclick="buyMP2()" id="MPBtn2" data-category="cleaning">Environmental Cleanup Facility (-2 pollution) - <span id="MPCost2">800</span></button>
+        <button onclick="buyMP3()" id="MPBtn3" data-category="cleaning">Planetary Cleanser (-5 pollution) - <span id="MPCost3">1100</span></button>
+        <button onclick="buySolar()" id="SolarBtn" class="mod-only-block hidden" data-category="cleaning" data-mod="renewable">Solar Array (+25/sec, -2 pollution) - <span id="SolarCost">1200</span></button>
+        <button onclick="buyWind()" id="WindBtn" class="mod-only-block hidden" data-category="cleaning" data-mod="renewable">Wind Turbine (+12/sec, -1 pollution) - <span id="WindCost">900</span></button>
+        <button onclick="buyRecycler()" id="RecyclerBtn" class="mod-only-block hidden" data-category="cleaning" data-mod="renewable">Recycling Center (+5/sec, -2.5 pollution) - <span id="RecyclerCost">1600</span></button>
+
+
+    </div>
+
+        <div class="button-grid">
+            <button onclick="useIndustrialSupport()" id="policyIndustrial" data-category="polite">Industrial Support (+10 pollution growth, +0.5% multiplier)</button>
+            <button onclick="usePublicTransport()" id="policyTransport" data-category="polite">Public Transport Project (+25 population growth, +5 pollution)</button>
+            <button onclick="useBusinessGrants()" id="policyGrants" data-category="polite">Business Grants (-50,000 coins, +2% multiplier)</button>
+        </div>
+        <div class="resource small" id="policyStatus"></div>
+
+    <button onclick="resetSave()">Reset Save</button>
+
+    <div class="event-log" id="eventLog"></div>
+
+    <div id="smoke"></div>
+    
+</div>
+
+    <section class="page-section">
+        <h2>About The Project</h2>
+        <p>EcoIdle is a calm city builder about growth, economy, and ecology. Expand markets, launch industry, and keep pollution in check to protect your citizens.</p>
+        <p>Use the tech tree to plan long-term progress and see requirements before you commit.</p>
+    </section>
+
+    <section class="page-section">
+        <h2>Quick Tips</h2>
+        <ul>
+            <li>Start with markets to create steady income.</li>
+            <li>Balance pollution with farms and cleanup facilities.</li>
+            <li>Watch taxes: large fines slow down progress.</li>
+            <li>Plan your tech branches early, some nodes need big population.</li>
+        </ul>
+    </section>
+
+    <section class="page-section">
+        <h2>Ecology Risks</h2>
+        <p>High pollution brings fines, population loss, and random crises. The best cities grow when profit and clean air stay balanced.</p>
+        <p>Clean tech is slower for income, but keeps your citizens safe and stable.</p>
+    </section>
+
+    <section class="page-section">
+        <h2>Roadmap</h2>
+        <ul>
+            <li>More random events and city challenges.</li>
+            <li>Expanded technology tree with extra branches.</li>
+            <li>Visual milestones and new UI feedback.</li>
+            <li>More ways to grow without destroying the environment.</li>
+        </ul>
+    </section>
+
+    <a class="back-top" href="#top">Back to Top</a>
+</div>
+
+<script src="mods.js"></script>
+<script>
+const bgm = document.getElementById("bgmusic");
+if (bgm) {
+    bgm.volume = 0.35;
+    const tryPlay = () => bgm.play().catch(() => {});
+    window.addEventListener("load", tryPlay);
+    document.addEventListener("click", tryPlay, { once: true });
+    document.addEventListener("keydown", tryPlay, { once: true });
+}
+
+
+
+let coins = 1;
+let days = 0;
+let minuscoins = 10;
+
+// income
+let cps1 = 1, cps2 = 0, cps3 = 0, cps4 = 0, cps5 = 0, cps6 = 0, cps7 = 0, cps8 = 0, cps9 = 0, cps10 = 0, cps11 = 0, cps12 = 0, cps13 = 0, cps14 = 0, cps15 = 0;
+
+let allowSave = true;
+const SAVE_SLOTS = 3;
+const SAVE_KEY_PREFIX = "idleGameSave_slot";
+const ACTIVE_SLOT_KEY = "idleGameActiveSlot";
+const LEGACY_SAVE_KEY = "idleGameSave";
+const META_KEY = "idleGameSlotsMeta";
+let activeSlot = 1;
+const MOD_STATE_KEY = "ecoIdleModState";
+const TECH_STATE_PREFIX = "ecoIdleTechState_slot";
+const TECH_STATE_LEGACY = "ecoIdleTechState_legacy";
+const TECH_LABELS = {
+    "small-market": "Small Market",
+    "medium-market": "Medium Market",
+    "big-market": "Big Market",
+    "industrialisation": "Industrialisation",
+    "mass-production": "Mass Production",
+    "overclocked-production": "Overclocked Production",
+    "mega-production-line": "Mega Production Line",
+    "advanced-security-system": "Advanced Security System",
+    "expensive-security-system": "Expensive Security System",
+    "total-surveillance-network": "Total Surveillance Network",
+    "eco-expansion": "Eco Expansion",
+    "improved-cleaning-system": "Improved Cleaning System",
+    "eco-tech": "Eco Tech",
+    "farm": "Farm",
+    "pollution-treatment": "Pollution Treatment Plant",
+    "environmental-cleanup": "Environmental Cleanup Facility",
+    "planetary-cleanser": "Planetary Cleanser",
+    "industrial-tech": "Industrial Tech",
+    "coal-power-plant": "Coal Power Plant",
+    "small-factory": "Small Factory",
+    "medium-factory": "Medium Factory",
+    "big-factory": "Big Factory",
+    "nuclear-power-tech": "Nuclear Power Tech",
+    "nuclear-power-plant": "Nuclear Power Plant",
+    "antimatter-reactor": "Antimatter Reactor",
+    "industrialisation-tech": "Industrialisation Tech",
+    "oil-refinery": "Oil Refinery",
+    "renewable-expansion": "Renewable Expansion",
+    "solar-array": "Solar Array",
+    "wind-turbine": "Wind Turbine",
+    "recycling-center": "Recycling Center",
+    "industrial-expansion": "Industrial Expansion",
+    "steel-foundry": "Steel Foundry",
+    "mega-plant": "Mega Plant"
+};
+const TECH_BUTTON_MAP = {
+    upgradeBtn: "small-market",
+    MarketBtn: "medium-market",
+    BMarketBtn: "big-market",
+    CoalBtn: "coal-power-plant",
+    SfactoryBtn: "small-factory",
+    MfactoryBtn: "medium-factory",
+    BfactoryBtn: "big-factory",
+    OilBtn: "oil-refinery",
+    NuclearBtn: "nuclear-power-plant",
+    Nuclear2Btn: "antimatter-reactor",
+    FarmBtn: "farm",
+    MPBtn: "pollution-treatment",
+    MPBtn2: "environmental-cleanup",
+    MPBtn3: "planetary-cleanser",
+    SolarBtn: "solar-array",
+    WindBtn: "wind-turbine",
+    RecyclerBtn: "recycling-center",
+    FoundryBtn: "steel-foundry",
+    MegaBtn: "mega-plant"
+};
+let techState = { researched: {} };
+let modIncomeMultiplierBonus = 0;
+let modPollutionReductionBonus = 0;
+let modPopulationPSBonus = 0;
+let modBaseIncomeBonus = 0;
+let modDisableParticles = false;
+let modShader = false;
+let modUiGlow = false;
+let modUnlockSolar = false;
+let modUnlockWind = false;
+let modUnlockRecycler = false;
+let modUnlockFoundry = false;
+let modUnlockMega = false;
+let modUnlockRenewable = false;
+let modUnlockIndustrial = false;
+let modPollutionMultiplierBonus = 0;
+let modTaxMultiplierBonus = 0;
+let modEventRiskBonus = 0;
+let activeModNames = [];
+let techIncomeMultiplierBonus = 0;
+let techPollutionMultiplierBonus = 0;
+let techPopulationMultiplierBonus = 0;
+
+// pollution
+let pollution = 0;
+let pollutionPerSecond = 0;
+let pollutionReduction = 0;
+let pollutionLevel = 0;
+
+//population
+let population = 1000;
+let basePopulationPS = 50;
+let populationPS = basePopulationPS;
+
+//building
+let smallFactories = 0;
+let mediumFactories = 0;
+let CoalPlants = 0;
+let bigFactories = 0;
+let oilCount = 0;
+let Nuclears = 0;
+let solarPlants = 0;
+let windTurbines = 0;
+let recyclingCenters = 0;
+let foundries = 0;
+let megaPlants = 0;
+let oilIncomeBonus = 0;
+let populationMultiplier = 1;
+let incomeMultiplier = 1;
+let policyMultiplierBonus = 0;
+let eventLog = [];
+const milestones = [5000, 25000, 100000, 300000, 1000000];
+let milestoneIndex = 0;
+
+// policies
+const policyCooldownDays = 30;
+let industrialLastUsedDay = -Infinity;
+let transportLastUsedDay = -Infinity;
+let grantsLastUsedDay = -Infinity;
+ 
+// costs
+let upgradeCost = 10;
+let MarketCost = 15;
+let BMarketCost = 100;
+let CoalCost = 150;
+let SfactoryCost = 300;
+let MfactoryCost = 500;
+let BfactoryCost = 800;
+let OilCost = 1000;
+let NuclearCost = 3000;
+let Nuclear2Cost = 6000;
+let pCoinsCost = 200;
+let FarmCost = 100;
+let MPCost = 500;
+let MPCost2 = 800;
+let MPCost3 = 1100;
+let SolarCost = 1200;
+let WindCost = 900;
+let RecyclerCost = 1600;
+let FoundryCost = 2200;
+let MegaCost = 4200;
+
+function getEnabledMods() {
+    const library = window.getEcoModLibrary ? window.getEcoModLibrary() : window.ECO_MOD_LIBRARY;
+    if (!library || !Array.isArray(library)) return [];
+    let state = {};
+    try {
+        state = window.getEcoModState
+            ? window.getEcoModState()
+            : JSON.parse(localStorage.getItem(MOD_STATE_KEY) || "{}");
+    } catch {
+        state = {};
+    }
+    return library.filter((mod) => state[mod.id]?.enabled);
+}
+
+function applyMods() {
+    modIncomeMultiplierBonus = 0;
+    modPollutionReductionBonus = 0;
+    modPopulationPSBonus = 0;
+    modBaseIncomeBonus = 0;
+    modPollutionMultiplierBonus = 0;
+    modTaxMultiplierBonus = 0;
+    modEventRiskBonus = 0;
+    modDisableParticles = false;
+    modShader = false;
+    modUiGlow = false;
+    modUnlockSolar = false;
+    modUnlockWind = false;
+    modUnlockRecycler = false;
+    modUnlockFoundry = false;
+    modUnlockMega = false;
+    modUnlockRenewable = false;
+    modUnlockIndustrial = false;
+    activeModNames = [];
+    const enabledMods = getEnabledMods();
+    enabledMods.forEach((mod) => {
+        activeModNames.push(mod.name);
+        const effects = mod.effects || {};
+        if (Number.isFinite(effects.incomeMultiplier)) {
+            modIncomeMultiplierBonus += effects.incomeMultiplier;
+        }
+        if (Number.isFinite(effects.pollutionReduction)) {
+            modPollutionReductionBonus += effects.pollutionReduction;
+        }
+        if (Number.isFinite(effects.populationPS)) {
+            modPopulationPSBonus += effects.populationPS;
+        }
+        if (Number.isFinite(effects.baseIncome)) {
+            modBaseIncomeBonus += effects.baseIncome;
+        }
+        if (effects.disableParticles === true) {
+            modDisableParticles = true;
+        }
+        if (effects.shader === true) {
+            modShader = true;
+        }
+        if (effects.uiGlow === true) {
+            modUiGlow = true;
+        }
+        if (effects.unlockSolar === true) {
+            modUnlockSolar = true;
+        }
+        if (effects.unlockWind === true) {
+            modUnlockWind = true;
+        }
+        if (effects.unlockRecycler === true) {
+            modUnlockRecycler = true;
+        }
+        if (effects.unlockFoundry === true) {
+            modUnlockFoundry = true;
+        }
+        if (effects.unlockMega === true) {
+            modUnlockMega = true;
+        }
+        if (Number.isFinite(effects.pollutionMultiplier)) {
+            modPollutionMultiplierBonus += effects.pollutionMultiplier;
+        }
+        if (Number.isFinite(effects.taxMultiplier)) {
+            modTaxMultiplierBonus += effects.taxMultiplier;
+        }
+        if (Number.isFinite(effects.eventRisk)) {
+            modEventRiskBonus += effects.eventRisk;
+        }
+    });
+    modUnlockRenewable = modUnlockSolar || modUnlockWind || modUnlockRecycler;
+    modUnlockIndustrial = modUnlockFoundry || modUnlockMega;
+}
+
+applyMods();
+recalculatePopulationPS();
+recalculateMultiplier();
+
+function clampSlot(value) {
+    const slot = Number.parseInt(value, 10);
+    if (!Number.isFinite(slot)) return 1;
+    return Math.min(SAVE_SLOTS, Math.max(1, slot));
+}
+
+function getSaveKey(slot) {
+    return `${SAVE_KEY_PREFIX}${slot}`;
+}
+
+function getActiveSlot() {
+    return clampSlot(localStorage.getItem(ACTIVE_SLOT_KEY) || 1);
+}
+
+function setActiveSlot(slot) {
+    localStorage.setItem(ACTIVE_SLOT_KEY, String(clampSlot(slot)));
+}
+
+function getTechStateKey(slot) {
+    if (slot === "Legacy") return TECH_STATE_LEGACY;
+    return `${TECH_STATE_PREFIX}${slot}`;
+}
+
+function loadTechState() {
+    let state = null;
+    try {
+        state = JSON.parse(localStorage.getItem(getTechStateKey(activeSlot)) || "null");
+    } catch {
+        state = null;
+    }
+    if (!state || typeof state !== "object") state = {};
+    if (!state.researched || typeof state.researched !== "object") {
+        state.researched = {};
+    }
+    if (!state.choices || typeof state.choices !== "object") {
+        state.choices = {};
+    }
+    if (!state.researched["small-market"]) {
+        state.researched["small-market"] = true;
+        localStorage.setItem(getTechStateKey(activeSlot), JSON.stringify(state));
+    }
+    return state;
+}
+
+function saveTechState() {
+    localStorage.setItem(getTechStateKey(activeSlot), JSON.stringify(techState));
+}
+
+function isTechResearched(techId) {
+    return Boolean(techId && techState.researched && techState.researched[techId]);
+}
+
+function ensureTechResearched(techId) {
+    if (!techId) return true;
+    if (isTechResearched(techId)) return true;
+    const label = TECH_LABELS[techId] || techId;
+    addEvent(`Technology required: ${label}.`);
+    return false;
+}
+
+function isTechLocked(techId) {
+    return Boolean(techId && !isTechResearched(techId));
+}
+
+function ensureMetaDefaults() {
+    let meta = [];
+    try {
+        meta = JSON.parse(localStorage.getItem(META_KEY) || "[]");
+    } catch {
+        meta = [];
+    }
+    if (!Array.isArray(meta)) meta = [];
+    for (let i = 0; i < SAVE_SLOTS; i++) {
+        if (!meta[i]) meta[i] = {};
+        if (typeof meta[i].name !== "string" || !meta[i].name.trim()) {
+            meta[i].name = `Slot ${i + 1}`;
+        }
+        if (typeof meta[i].description !== "string") {
+            meta[i].description = "";
+        }
+    }
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+function migrateLegacySave() {
+    const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+    if (!legacy) return;
+    const slot1Key = getSaveKey(1);
+    if (!localStorage.getItem(slot1Key)) {
+        localStorage.setItem(slot1Key, legacy);
+    }
+    localStorage.removeItem(LEGACY_SAVE_KEY);
+    if (!localStorage.getItem(ACTIVE_SLOT_KEY)) {
+        localStorage.setItem(ACTIVE_SLOT_KEY, "1");
+    }
+}
+
+migrateLegacySave();
+ensureMetaDefaults();
+activeSlot = getActiveSlot();
+setActiveSlot(activeSlot);
+techState = loadTechState();
+applyTechBonuses(techState);
+recalculateMultiplier();
+recalculatePopulationPS();
+
+function refreshTechState() {
+    const latest = loadTechState();
+    techState = latest;
+    applyTechBonuses(latest);
+    recalculateMultiplier();
+    recalculatePopulationPS();
+}
+
+setInterval(refreshTechState, 1500);
+
+const el = {
+    coins: document.getElementById("coins"),
+    days: document.getElementById("days"),
+    minuscoins: document.getElementById("minuscoins"),
+    pollution: document.getElementById("pollution"),
+    pollutionReduction: document.getElementById("pollutionReduction"),
+    perSecond: document.getElementById("perSecond"),
+    multiplier: document.getElementById("multiplier"),
+    pollutionPerSec: document.getElementById("pollutionPerSec"),
+    upgradeCost: document.getElementById("upgradeCost"),
+    MarketCost: document.getElementById("MarketCost"),
+    BMarketCost: document.getElementById("BMarketCost"),
+    CoalCost: document.getElementById("CoalCost"),
+    SfactoryCost: document.getElementById("SfactoryCost"),
+    MfactoryCost: document.getElementById("MfactoryCost"),
+    BfactoryCost: document.getElementById("BfactoryCost"),
+    OilCost: document.getElementById("OilCost"),
+    NuclearCost: document.getElementById("NuclearCost"),
+    Nuclear2Cost: document.getElementById("Nuclear2Cost"),
+    pCoinsCost: document.getElementById("pCoinsCost"),
+    FarmCost: document.getElementById("FarmCost"),
+    MPCost: document.getElementById("MPCost"),
+    MPCost2: document.getElementById("MPCost2"),
+    MPCost3: document.getElementById("MPCost3"),
+    population: document.getElementById("population"),
+    populationPS: document.getElementById("populationPS"),
+    coalCount: document.getElementById("coalCount"),
+    smallFactoryCount: document.getElementById("smallFactoryCount"),
+    mediumFactoryCount: document.getElementById("mediumFactoryCount"),
+    bigFactoryCount: document.getElementById("bigFactoryCount"),
+    oilCount: document.getElementById("oilCount"),
+    nuclearCount: document.getElementById("nuclearCount"),
+    solarCount: document.getElementById("solarCount"),
+    windCount: document.getElementById("windCount"),
+    recyclerCount: document.getElementById("recyclerCount"),
+    foundryCount: document.getElementById("foundryCount"),
+    megaCount: document.getElementById("megaCount"),
+    nextMilestone: document.getElementById("nextMilestone"),
+    ecoStatus: document.getElementById("ecoStatus"),
+    pollutionMeter: document.getElementById("pollutionMeter"),
+    activeMods: document.getElementById("activeMods"),
+    eventLog: document.getElementById("eventLog"),
+    upgradeBtn: document.getElementById("upgradeBtn"),
+    MarketBtn: document.getElementById("MarketBtn"),
+    BMarketBtn: document.getElementById("BMarketBtn"),
+    CoalBtn: document.getElementById("CoalBtn"),
+    SfactoryBtn: document.getElementById("SfactoryBtn"),
+    MfactoryBtn: document.getElementById("MfactoryBtn"),
+    BfactoryBtn: document.getElementById("BfactoryBtn"),
+    OilBtn: document.getElementById("OilBtn"),
+    NuclearBtn: document.getElementById("NuclearBtn"),
+    Nuclear2Btn: document.getElementById("Nuclear2Btn"),
+    pCoinsBtn: document.getElementById("pCoinsBtn"),
+    FarmBtn: document.getElementById("FarmBtn"),
+    MPBtn: document.getElementById("MPBtn"),
+    MPBtn2: document.getElementById("MPBtn2"),
+    MPBtn3: document.getElementById("MPBtn3"),
+    SolarBtn: document.getElementById("SolarBtn"),
+    WindBtn: document.getElementById("WindBtn"),
+    RecyclerBtn: document.getElementById("RecyclerBtn"),
+    FoundryBtn: document.getElementById("FoundryBtn"),
+    MegaBtn: document.getElementById("MegaBtn"),
+    policyIndustrial: document.getElementById("policyIndustrial"),
+    policyTransport: document.getElementById("policyTransport"),
+    policyGrants: document.getElementById("policyGrants"),
+    policyStatus: document.getElementById("policyStatus"),
+    SolarCost: document.getElementById("SolarCost"),
+    WindCost: document.getElementById("WindCost"),
+    RecyclerCost: document.getElementById("RecyclerCost"),
+    FoundryCost: document.getElementById("FoundryCost"),
+    MegaCost: document.getElementById("MegaCost")
+};
+
+function applyModVisuals() {
+    document.body.classList.toggle("mod-shader", modShader);
+    document.body.classList.toggle("mod-ui", modUiGlow);
+    document.body.classList.toggle("mod-content", modUnlockRenewable || modUnlockIndustrial);
+    if (el.SolarBtn) {
+        el.SolarBtn.classList.toggle("hidden", !modUnlockSolar);
+    }
+    if (el.WindBtn) {
+        el.WindBtn.classList.toggle("hidden", !modUnlockWind);
+    }
+    if (el.RecyclerBtn) {
+        el.RecyclerBtn.classList.toggle("hidden", !modUnlockRecycler);
+    }
+    if (el.FoundryBtn) {
+        el.FoundryBtn.classList.toggle("hidden", !modUnlockFoundry);
+    }
+    if (el.MegaBtn) {
+        el.MegaBtn.classList.toggle("hidden", !modUnlockMega);
+    }
+}
+
+applyModVisuals();
+
+function formatNum(value) {
+    return Math.floor(value).toLocaleString("en-US");
+}
+
+function recalculateMultiplier() {
+    const raw = 1 + oilIncomeBonus + policyMultiplierBonus + modIncomeMultiplierBonus + techIncomeMultiplierBonus;
+    incomeMultiplier = Math.max(0.05, raw) * populationMultiplier;
+}
+
+function recalculatePopulationPS() {
+    const base = basePopulationPS + modPopulationPSBonus;
+    let raw;
+    if (pollution < 10) {
+        raw = base;
+    } else if (pollution < 50) {
+        raw = base - 10;
+    } else if (pollution < 100) {
+        raw = base - 25;
+    } else {
+        raw = -50 + modPopulationPSBonus;
+    }
+    const multiplier = 1 + techPopulationMultiplierBonus;
+    populationPS = Math.floor(raw * multiplier);
+}
+
+function computeTechBonuses(state) {
+    const researched = state?.researched || {};
+    let income = 0;
+    let pollution = 0;
+    let populationGrowth = 0;
+
+    const massPath = ["mass-production", "overclocked-production", "mega-production-line"];
+    massPath.forEach((id) => {
+        if (researched[id]) {
+            income += 0.10;
+            pollution += 0.10;
+        }
+    });
+
+    const securityPath = ["advanced-security-system", "expensive-security-system", "total-surveillance-network"];
+    securityPath.forEach((id) => {
+        if (researched[id]) {
+            populationGrowth += 0.10;
+            income -= 0.30;
+        }
+    });
+
+    const ecoPath = ["eco-expansion", "improved-cleaning-system"];
+    ecoPath.forEach((id) => {
+        if (researched[id]) {
+            pollution -= 0.10;
+            income -= 0.15;
+        }
+    });
+
+    return { income, pollution, populationGrowth };
+}
+
+function applyTechBonuses(state) {
+    const bonuses = computeTechBonuses(state);
+    techIncomeMultiplierBonus = bonuses.income;
+    techPollutionMultiplierBonus = bonuses.pollution;
+    techPopulationMultiplierBonus = bonuses.populationGrowth;
+}
+
+function addEvent(text) {
+    eventLog.unshift(`[Day ${days}] ${text}`);
+    if (eventLog.length > 8) eventLog.pop();
+}
+
+function canUsePolicy(lastUsedDay) {
+    return days >= lastUsedDay + policyCooldownDays;
+}
+
+function policyCooldownLeft(lastUsedDay) {
+    return Math.max(0, (lastUsedDay + policyCooldownDays) - days);
+}
+
+const secretWord = "ECO";
+let secretBuffer = "";
+window.addEventListener("keydown", (e) => {
+    if (!e.key || e.key.length !== 1) return;
+    secretBuffer = (secretBuffer + e.key.toUpperCase()).slice(-secretWord.length);
+    if (secretBuffer === secretWord) {
+        addEvent("Easter egg: green code unlocked.");
+        updateUI();
+    }
+});
+
+function checkMilestones() {
+    if (milestoneIndex >= milestones.length) return;
+    const target = milestones[milestoneIndex];
+    if (coins >= target) {
+        const reward = Math.floor(target * 0.15);
+        coins += reward;
+        milestoneIndex++;
+        addEvent(`City milestone reached: ${formatNum(target)} coins. Reward +${formatNum(reward)}.`);
+    }
+}
+
+// click
+function clickCoin() {
+    coins++;
+    updateUI();
+}
+
+// upgrades
+function buyUpgrade() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.upgradeBtn)) return;
+    if (coins >= upgradeCost) {
+        coins -= upgradeCost;
+        cps1 += 1;
+        basePopulationPS++;
+        upgradeCost = Math.floor(upgradeCost * 1.12);
+        updateUI();
+    }
+}
+
+function buyMarket() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MarketBtn)) return;
+    if (coins >= MarketCost) {
+        coins -= MarketCost;
+        cps2 += 2;
+        basePopulationPS++;
+        MarketCost = Math.floor(MarketCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyBigMarket() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.BMarketBtn)) return;
+    if (coins >= BMarketCost) {
+        coins -= BMarketCost;
+        cps3 += 4;
+        basePopulationPS++;
+        BMarketCost = Math.floor(BMarketCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyCoal() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.CoalBtn)) return;
+    if (coins >= CoalCost) {
+        coins -= CoalCost;
+        CoalPlants++;
+        cps9 = CoalPlants * 8;
+        pollutionPerSecond += 0.5;
+        CoalCost = Math.floor(CoalCost * 1.09);
+        updateUI();
+    }
+}
+
+function buySFactory() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.SfactoryBtn)) return;
+    if (coins >= SfactoryCost) {
+        coins -= SfactoryCost;
+        smallFactories++;
+        cps4 = smallFactories * 10;
+        pollutionPerSecond += 1;
+        SfactoryCost = Math.floor(SfactoryCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyMFactory() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MfactoryBtn)) return;
+    if (coins >= MfactoryCost) {
+        coins -= MfactoryCost;
+        mediumFactories++;
+        cps5 = mediumFactories * 20;
+        pollutionPerSecond += 2;
+        MfactoryCost = Math.floor(MfactoryCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyBFactory() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.BfactoryBtn)) return;
+    if (coins >= BfactoryCost) {
+        coins -= BfactoryCost;
+        bigFactories++;
+        cps6 = bigFactories * 40;
+        pollutionPerSecond += 3;
+        BfactoryCost = Math.floor(BfactoryCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyOil() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.OilBtn)) return;
+    if (coins >= OilCost) {
+        coins -= OilCost;
+
+        oilCount++;
+    cps10 = oilCount * 60;
+
+        oilIncomeBonus = oilCount * 0.01;
+        recalculateMultiplier();
+
+        pollutionPerSecond += 6;
+        OilCost = Math.floor(OilCost * 1.2);
+        updateUI();
+    }
+}
+
+
+function buyNuclear() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.NuclearBtn)) return;
+    if (coins >= NuclearCost) {
+        coins -= NuclearCost;
+        Nuclears++;
+        cps7 = Nuclears * 100;
+        pollutionPerSecond += 5;
+        NuclearCost = Math.floor(NuclearCost * 1.09);
+        updateUI();
+    }
+}
+
+function buyNuclear2() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.Nuclear2Btn)) return;
+    if (coins >= Nuclear2Cost) {
+        coins -= Nuclear2Cost;
+        cps8 += 300;
+        pollutionPerSecond += 10;
+        Nuclear2Cost = Math.floor(Nuclear2Cost * 1.07);
+        updateUI();
+    }
+}
+
+function buyPlusCoins() {
+    if (coins >= pCoinsCost) {
+        coins -= pCoinsCost;
+        minuscoins = Math.max(0, minuscoins - 5);
+        pCoinsCost = Math.floor(pCoinsCost * 1.2);
+        updateUI();
+    }
+}
+
+function buyFarm() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.FarmBtn)) return;
+    if (coins >= FarmCost) {
+        coins -= FarmCost;
+        basePopulationPS += 5;
+        pollutionReduction += 0.5;
+        cps9 += 5;
+        FarmCost = Math.floor(FarmCost * 1.07);
+        updateUI();
+    }
+}
+
+function buyMP() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MPBtn)) return;
+    if (coins >= MPCost) {
+        coins -= MPCost;
+        pollutionReduction += 1;
+        pollution -= 1;
+        if (pollution < 0) pollution = 0;
+        MPCost = Math.floor(MPCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyMP2() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MPBtn2)) return;
+    if (coins >= MPCost2) {
+        coins -= MPCost2;
+        pollutionReduction += 2;
+        pollution -= 2;
+        if (pollution < 0) pollution = 0;
+        MPCost2 = Math.floor(MPCost2 * 1.1);
+        updateUI();
+    }
+}
+
+function buyMP3() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MPBtn3)) return;
+    if (coins >= MPCost3) {
+        coins -= MPCost3;
+        pollutionReduction += 5;
+        pollution -= 5;
+        if (pollution < 0) pollution = 0;
+        MPCost3 = Math.floor(MPCost3 * 1.1);
+        updateUI();
+    }
+}
+
+function buySolar() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.SolarBtn)) return;
+    if (!modUnlockSolar) return;
+    if (coins >= SolarCost) {
+        coins -= SolarCost;
+        solarPlants++;
+        cps11 = solarPlants * 25;
+        pollutionReduction += 2;
+        SolarCost = Math.floor(SolarCost * 1.12);
+        updateUI();
+    }
+}
+
+function buyWind() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.WindBtn)) return;
+    if (!modUnlockWind) return;
+    if (coins >= WindCost) {
+        coins -= WindCost;
+        windTurbines++;
+        cps12 = windTurbines * 12;
+        pollutionReduction += 1;
+        WindCost = Math.floor(WindCost * 1.1);
+        updateUI();
+    }
+}
+
+function buyRecycler() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.RecyclerBtn)) return;
+    if (!modUnlockRecycler) return;
+    if (coins >= RecyclerCost) {
+        coins -= RecyclerCost;
+        recyclingCenters++;
+        cps13 = recyclingCenters * 5;
+        pollutionReduction += 2.5;
+        RecyclerCost = Math.floor(RecyclerCost * 1.12);
+        updateUI();
+    }
+}
+
+function buyFoundry() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.FoundryBtn)) return;
+    if (!modUnlockFoundry) return;
+    if (coins >= FoundryCost) {
+        coins -= FoundryCost;
+        foundries++;
+        cps14 = foundries * 120;
+        pollutionPerSecond += 6;
+        FoundryCost = Math.floor(FoundryCost * 1.12);
+        updateUI();
+    }
+}
+
+function buyMegaPlant() {
+    if (!ensureTechResearched(TECH_BUTTON_MAP.MegaBtn)) return;
+    if (!modUnlockMega) return;
+    if (coins >= MegaCost) {
+        coins -= MegaCost;
+        megaPlants++;
+        cps15 = megaPlants * 220;
+        pollutionPerSecond += 10;
+        MegaCost = Math.floor(MegaCost * 1.14);
+        updateUI();
+    }
+}
+
+function useIndustrialSupport() {
+    if (!canUsePolicy(industrialLastUsedDay)) return;
+    industrialLastUsedDay = days;
+    pollutionPerSecond += 10;
+    policyMultiplierBonus += 0.005;
+    recalculateMultiplier();
+    addEvent("Policy: Industrial Support enacted.");
+    updateUI();
+}
+
+function usePublicTransport() {
+    if (!canUsePolicy(transportLastUsedDay)) return;
+    transportLastUsedDay = days;
+    basePopulationPS += 25;
+    recalculatePopulationPS();
+    pollution += 5;
+    addEvent("Policy: Public Transport Project launched.");
+    updateUI();
+}
+
+function useBusinessGrants() {
+    if (!canUsePolicy(grantsLastUsedDay)) return;
+    if (coins < 50000) return;
+    grantsLastUsedDay = days;
+    coins -= 50000;
+    policyMultiplierBonus += 0.02;
+    recalculateMultiplier();
+    addEvent("Policy: Business Grants approved.");
+    updateUI();
+}
+
+function resetSave() {
+    if (confirm("Delete save?")) {
+        allowSave = false;
+        localStorage.removeItem(getSaveKey(activeSlot));
+        localStorage.removeItem(getTechStateKey(activeSlot));
+        addEvent("Save deleted.");
+        location.reload();
+    }
+}
+
+function triggerReactorExplosionEffect() {
+    const gameEl = document.querySelector(".game");
+    if (gameEl) {
+        gameEl.classList.remove("shake");
+        void gameEl.offsetWidth;
+        gameEl.classList.add("shake");
+    }
+    document.body.classList.remove("flash");
+    void document.body.offsetWidth;
+    document.body.classList.add("flash");
+    setTimeout(() => {
+        if (gameEl) gameEl.classList.remove("shake");
+        document.body.classList.remove("flash");
+    }, 650);
+}
+
+function loadGame() {
+    const rawSave = localStorage.getItem(getSaveKey(activeSlot));
+    if (!rawSave) return;
+
+    let save;
+    try {
+        save = JSON.parse(rawSave);
+    } catch {
+        addEvent("Save file was corrupted and skipped.");
+        return;
+    }
+    if (!save) return;
+
+    coins = save.coins ?? coins;
+    days = save.days ?? days;
+    minuscoins = save.minuscoins ?? minuscoins;
+    population = save.population ?? population;
+    basePopulationPS = save.basePopulationPS ?? basePopulationPS;
+
+    cps1 = save.cps1 ?? cps1;
+    cps2 = save.cps2 ?? cps2;
+    cps3 = save.cps3 ?? cps3;
+    cps4 = save.cps4 ?? cps4;
+    cps5 = save.cps5 ?? cps5;
+    cps6 = save.cps6 ?? cps6;
+    cps7 = save.cps7 ?? cps7;
+    cps8 = save.cps8 ?? cps8;
+    cps9 = save.cps9 ?? cps9;
+    cps10 = save.cps10 ?? cps10;
+    cps11 = save.cps11 ?? cps11;
+    cps12 = save.cps12 ?? cps12;
+    cps13 = save.cps13 ?? cps13;
+    cps14 = save.cps14 ?? cps14;
+    cps15 = save.cps15 ?? cps15;
+
+    pollution = save.pollution ?? pollution;
+    pollutionPerSecond = save.pollutionPerSecond ?? pollutionPerSecond;
+    pollutionReduction = save.pollutionReduction ?? pollutionReduction;
+    pollutionLevel = save.pollutionLevel ?? pollutionLevel;
+    recalculatePopulationPS();
+
+    smallFactories = save.smallFactories ?? smallFactories;
+    mediumFactories = save.mediumFactories ?? mediumFactories;
+    CoalPlants = save.CoalPlants ?? CoalPlants;
+    bigFactories = save.bigFactories ?? bigFactories;
+    oilCount = save.oilCount ?? oilCount;
+    oilIncomeBonus = save.oilIncomeBonus ?? (oilCount * 0.01);
+    populationMultiplier = save.populationMultiplier ?? (1 + (population / 500) * 0.01);
+    policyMultiplierBonus = save.policyMultiplierBonus ?? policyMultiplierBonus;
+    recalculateMultiplier();
+    Nuclears = save.Nuclears ?? Nuclears;
+    solarPlants = save.solarPlants ?? solarPlants;
+    windTurbines = save.windTurbines ?? windTurbines;
+    recyclingCenters = save.recyclingCenters ?? recyclingCenters;
+    foundries = save.foundries ?? foundries;
+    megaPlants = save.megaPlants ?? megaPlants;
+    cps11 = save.cps11 ?? (solarPlants * 25);
+    cps12 = save.cps12 ?? (windTurbines * 12);
+    cps13 = save.cps13 ?? (recyclingCenters * 5);
+    cps14 = save.cps14 ?? (foundries * 120);
+    cps15 = save.cps15 ?? (megaPlants * 220);
+
+    milestoneIndex = save.milestoneIndex ?? milestoneIndex;
+    eventLog = save.eventLog ?? eventLog;
+
+    industrialLastUsedDay = save.industrialLastUsedDay ?? industrialLastUsedDay;
+    transportLastUsedDay = save.transportLastUsedDay ?? transportLastUsedDay;
+    grantsLastUsedDay = save.grantsLastUsedDay ?? grantsLastUsedDay;
+
+    upgradeCost = save.upgradeCost ?? upgradeCost;
+    MarketCost = save.MarketCost ?? MarketCost;
+    BMarketCost = save.BMarketCost ?? BMarketCost;
+    CoalCost = save.CoalCost ?? CoalCost;
+    SfactoryCost = save.SfactoryCost ?? SfactoryCost;
+    MfactoryCost = save.MfactoryCost ?? MfactoryCost;
+    BfactoryCost = save.BfactoryCost ?? BfactoryCost;
+    OilCost = save.OilCost ?? OilCost;
+    NuclearCost = save.NuclearCost ?? NuclearCost;
+    Nuclear2Cost = save.Nuclear2Cost ?? Nuclear2Cost;
+    pCoinsCost = save.pCoinsCost ?? pCoinsCost;
+    FarmCost = save.FarmCost ?? FarmCost;
+    MPCost = save.MPCost ?? MPCost;
+    MPCost2 = save.MPCost2 ?? MPCost2;
+    MPCost3 = save.MPCost3 ?? MPCost3;
+    SolarCost = save.SolarCost ?? SolarCost;
+    WindCost = save.WindCost ?? WindCost;
+    RecyclerCost = save.RecyclerCost ?? RecyclerCost;
+    FoundryCost = save.FoundryCost ?? FoundryCost;
+    MegaCost = save.MegaCost ?? MegaCost;
+}
+
+
+// income tick
+setInterval(() => {
+    const baseIncome =
+        cps1 + cps2 + cps3 + cps4 + cps5 +
+        cps6 + cps7 + cps8 + cps9 + cps10 + cps11 + cps12 + cps13 + cps14 + cps15;
+
+    coins += Math.floor(baseIncome * incomeMultiplier);
+    checkMilestones();
+    updateUI();
+}, 1000);
+
+// pollution tick
+setInterval(() => {
+    const totalReduction = pollutionReduction + modPollutionReductionBonus;
+    const pollutionMultiplier = Math.max(0, 1 + modPollutionMultiplierBonus + techPollutionMultiplierBonus);
+    pollution += (pollutionPerSecond * pollutionMultiplier) - totalReduction; // фабрики минус очистка
+    if (pollution < 0) pollution = 0;
+
+    // уровень загрязнения и штрафы
+    let newLevel = Math.floor(pollution / 5);
+    if (newLevel > pollutionLevel) {
+        minuscoins += (newLevel - pollutionLevel);
+        pollutionLevel = newLevel;
+    }
+    if (pollution >= 100) {
+        enableSmoke();
+    } else {
+        disableSmoke();
+    }
+
+    updateUI();
+}, 5000);
+
+// days & fines
+setInterval(() => {
+    days++;
+    if (days % 10 === 0) {
+        const oldCoins = coins;
+        const taxMultiplier = 1 + modTaxMultiplierBonus;
+        const taxAmount = Math.floor(minuscoins * taxMultiplier);
+        coins -= taxAmount;
+        if (coins < 0) coins = 0;
+        const paid = oldCoins - coins;
+        addEvent(`City taxes paid: -${formatNum(paid)} coins.`);
+        minuscoins += 30;
+    }
+    updateUI();
+}, 10000);
+
+
+
+
+//random
+setInterval(() => {
+    population += populationPS;
+    if (population < 0) population = 0;
+    updateUI();
+
+    let baseChance = 0.02 + modEventRiskBonus;
+    const totalReduction = pollutionReduction + modPollutionReductionBonus;
+    let extra = (pollution * 0.002) - (totalReduction * 0.01);
+
+    let chance = Math.max(0, Math.min(0.5, baseChance + extra));
+
+    if (pollution < 10) {
+        chance = 0;
+    }
+    if (Math.random() < chance) {
+        addEvent("Emergency fine for toxic air: -1000 coins.");
+        coins = Math.max(0, coins - 1000);
+        updateUI();
+    }
+}, 5000);
+
+
+// dont pollute system 1 (маленькие заводы)
+setInterval(() => {
+    if (pollution >= 100 && smallFactories > 0) {
+        if (Math.random() < 0.8) {
+            addEvent("Government closed 1 Small Factory.");
+            smallFactories--;
+            cps4 = smallFactories * 10;
+            pollutionPerSecond = Math.max(0, pollutionPerSecond - 1);
+        }
+    }
+
+    if (pollution >= 200 && mediumFactories > 0) {
+        if (Math.random() < 0.8) {
+            addEvent("Government closed 1 Medium Factory.");
+            mediumFactories--;
+            cps5 = mediumFactories * 20;
+            pollutionPerSecond = Math.max(0, pollutionPerSecond - 2);
+        }
+    }
+
+    if (pollution >= 70 && CoalPlants > 0) {
+        if (Math.random() < 0.7) {
+            addEvent("Government closed 1 Coal Plant.");
+            CoalPlants--;
+            cps9 = CoalPlants * 8;
+            pollutionPerSecond = Math.max(0, pollutionPerSecond - 0.5);
+        }
+    }
+
+    if (pollution >= 250 && bigFactories > 0) {
+        if (Math.random() < 0.7) {
+            addEvent("Government closed 1 Big Factory.");
+            bigFactories--;
+            cps6 = bigFactories * 40;
+            pollutionPerSecond = Math.max(0, pollutionPerSecond - 3);
+        }
+    }
+
+    if (oilCount <= 0) return;
+    if (pollution < 200) return;
+
+    let baseChance = 0.04 + modEventRiskBonus; // 4%
+    let pollutionFactor = (pollution - 200) * 0.0015;
+    let reductionFactor = (pollutionReduction + modPollutionReductionBonus) * 0.02;
+
+    let chance = baseChance + pollutionFactor - reductionFactor;
+    chance = Math.max(0, Math.min(0.35, chance)); // максимум 35%
+
+    if (Math.random() < chance) {
+        addEvent("Government closed 1 Oil Refinery.");
+        oilCount--;
+
+        oilIncomeBonus = oilCount * 0.01;
+        recalculateMultiplier();
+        cps10 = oilCount * 60;
+        pollutionPerSecond = Math.max(0, pollutionPerSecond - 6);
+    }
+
+    if (pollution >= 300 && Nuclears > 0) {
+        if (Math.random() < 0.7) {
+            addEvent("Government closed 1 Nuclear Plant.");
+            Nuclears--;
+            cps7 = Nuclears * 100;
+            pollutionPerSecond = Math.max(0, pollutionPerSecond - 5);
+        }
+    }
+
+    //
+
+    if (pollution >= 100 && population > 100) {
+        if (Math.random() < 0.5) {
+            addEvent("The population is falling (-100 population)");
+            population = Math.max(0, population - 100);
+        }
+    }
+
+    if (coins >= 50000) {
+        if (Math.random() < 0.1) {
+            addEvent("Governement decide that you are too rich (+20 taxs)");
+            minuscoins += 20;
+            updateUI();
+        }
+    }
+
+    if (Nuclears >= 1 && population >= 2000) {
+        if (Math.random() < 0.01) {
+            addEvent("Your Nuclear Power Plant exploded!!!");
+            pollution += 300;
+            minuscoins += 50;
+            population -= 1000;
+            triggerReactorExplosionEffect();
+            updateUI();
+        }
+    }
+
+    if (days >= 250 && population >= 2500) {
+        if (Math.random() < 0.1) {
+            addEvent("The earthquake is started!!");
+            population -= 2500;
+            pollution += 50;
+        }
+    }
+
+    if (population >= 5000 && pollution >= 200) {
+        if (Math.random() < 0.30) {
+            addEvent("The protest is started, your citizens are angry about pollution!! (- population 500, + pollution 20, + taxes 30)");
+            population -= 500;
+            pollution += 20;
+            minuscoins += 30;
+        }
+    }
+    updateUI();
+}, 15000);
+
+//population
+setInterval(() => {
+    recalculatePopulationPS();
+}, 5000);
+
+setInterval(() => {
+    // 1000 населения = +1%
+    populationMultiplier = 1 + (population / 500) * 0.01;
+    recalculateMultiplier();
+}, 1000);
+
+function updateBackground() {
+    document.body.className = "";
+
+    if (pollution < 15) {
+        document.body.classList.add("clean");
+    } else if (pollution < 45) {
+        document.body.classList.add("lesspolluted");
+    } else if (pollution < 80) {
+        document.body.classList.add("polluted");
+    } else if (pollution < 150) {
+        document.body.classList.add("lessdirty");
+    } else if (pollution < 300) {
+        document.body.classList.add("dirty");
+    } else if (pollution < 500){
+        document.body.classList.add("toxic");
+    } else {
+        document.body.classList.add("dead");
+    }
+}
+
+const smoke = document.getElementById("smoke");
+let smokeActive = false;
+
+function enableSmoke() {
+    if (modDisableParticles) return;
+    if (smokeActive) return;
+    smokeActive = true;
+    smoke.style.display = "block";
+
+    for (let i = 0; i < 15; i++) {
+        const p = document.createElement("div");
+        p.className = "smoke-particle";
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.animationDuration = 8 + Math.random() * 6 + "s";
+        p.style.animationDelay = Math.random() * 5 + "s";
+        smoke.appendChild(p);
+    }
+}
+
+function disableSmoke() {
+    smokeActive = false;
+    smoke.style.display = "none";
+    smoke.innerHTML = "";
+}
+
+function getBaseIncome() {
+    return cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8 + cps9 + cps10 + cps11 + cps12 + cps13 + cps14 + cps15 + modBaseIncomeBonus;
+}
+
+// UI
+function updateUI() {
+    const baseIncome = getBaseIncome();
+    const ecoStatus =
+        pollution < 15 ? "Clean" :
+        pollution < 45 ? "Stable" :
+        pollution < 80 ? "Warning" :
+        pollution < 150 ? "High Risk" :
+        pollution < 300 ? "Critical" :
+        pollution < 500 ? "Toxic" : "Dead Zone";
+
+    el.coins.textContent = formatNum(coins);
+    el.days.textContent = days;
+    const taxMultiplier = 1 + modTaxMultiplierBonus;
+    el.minuscoins.textContent = formatNum(Math.floor(minuscoins * taxMultiplier));
+    el.pollution.textContent = pollution.toFixed(1);
+    const totalReduction = pollutionReduction + modPollutionReductionBonus;
+    el.pollutionReduction.textContent = totalReduction.toFixed(1);
+
+    el.perSecond.textContent = formatNum(Math.floor(baseIncome * incomeMultiplier));
+    el.multiplier.textContent = incomeMultiplier.toFixed(2);
+    const pollutionMultiplier = Math.max(0, 1 + modPollutionMultiplierBonus + techPollutionMultiplierBonus);
+    el.pollutionPerSec.textContent = (pollutionPerSecond * pollutionMultiplier).toFixed(1);
+
+    el.upgradeCost.textContent = upgradeCost;
+    el.MarketCost.textContent = MarketCost;
+    el.BMarketCost.textContent = BMarketCost;
+    el.CoalCost.textContent = CoalCost;
+    el.SfactoryCost.textContent = SfactoryCost;
+    el.MfactoryCost.textContent = MfactoryCost;
+    el.BfactoryCost.textContent = BfactoryCost;
+    el.OilCost.textContent = OilCost;
+    el.NuclearCost.textContent = NuclearCost;
+    el.Nuclear2Cost.textContent = Nuclear2Cost;
+    el.pCoinsCost.textContent = pCoinsCost;
+    el.FarmCost.textContent = FarmCost;
+    el.MPCost.textContent = MPCost;
+    el.MPCost2.textContent = MPCost2;
+    el.MPCost3.textContent = MPCost3;
+    if (el.SolarCost) {
+        el.SolarCost.textContent = SolarCost;
+    }
+    if (el.WindCost) {
+        el.WindCost.textContent = WindCost;
+    }
+    if (el.RecyclerCost) {
+        el.RecyclerCost.textContent = RecyclerCost;
+    }
+    if (el.FoundryCost) {
+        el.FoundryCost.textContent = FoundryCost;
+    }
+    if (el.MegaCost) {
+        el.MegaCost.textContent = MegaCost;
+    }
+    el.population.textContent = formatNum(population);
+    el.populationPS.textContent = populationPS;
+    el.coalCount.textContent = CoalPlants;
+    el.smallFactoryCount.textContent = smallFactories;
+    el.mediumFactoryCount.textContent = mediumFactories;
+    el.bigFactoryCount.textContent = bigFactories;
+    el.oilCount.textContent = oilCount;
+    el.nuclearCount.textContent = Nuclears;
+    if (el.solarCount) {
+        el.solarCount.textContent = solarPlants;
+    }
+    if (el.windCount) {
+        el.windCount.textContent = windTurbines;
+    }
+    if (el.recyclerCount) {
+        el.recyclerCount.textContent = recyclingCenters;
+    }
+    if (el.foundryCount) {
+        el.foundryCount.textContent = foundries;
+    }
+    if (el.megaCount) {
+        el.megaCount.textContent = megaPlants;
+    }
+
+    const next = milestoneIndex < milestones.length ? formatNum(milestones[milestoneIndex]) : "MAX";
+    el.nextMilestone.textContent = next;
+    el.ecoStatus.textContent = ecoStatus;
+    el.pollutionMeter.style.width = `${Math.min(100, (pollution / 500) * 100)}%`;
+    el.eventLog.innerHTML = eventLog
+        .map((item) => `<div class="event-item">${item}</div>`)
+        .join("");
+
+    el.upgradeBtn.disabled = isTechLocked(TECH_BUTTON_MAP.upgradeBtn) || coins < upgradeCost;
+    el.MarketBtn.disabled = isTechLocked(TECH_BUTTON_MAP.MarketBtn) || coins < MarketCost;
+    el.BMarketBtn.disabled = isTechLocked(TECH_BUTTON_MAP.BMarketBtn) || coins < BMarketCost;
+    el.CoalBtn.disabled = isTechLocked(TECH_BUTTON_MAP.CoalBtn) || coins < CoalCost;
+    el.SfactoryBtn.disabled = isTechLocked(TECH_BUTTON_MAP.SfactoryBtn) || coins < SfactoryCost;
+    el.MfactoryBtn.disabled = isTechLocked(TECH_BUTTON_MAP.MfactoryBtn) || coins < MfactoryCost;
+    el.BfactoryBtn.disabled = isTechLocked(TECH_BUTTON_MAP.BfactoryBtn) || coins < BfactoryCost;
+    el.OilBtn.disabled = isTechLocked(TECH_BUTTON_MAP.OilBtn) || coins < OilCost;
+    el.NuclearBtn.disabled = isTechLocked(TECH_BUTTON_MAP.NuclearBtn) || coins < NuclearCost;
+    el.Nuclear2Btn.disabled = isTechLocked(TECH_BUTTON_MAP.Nuclear2Btn) || coins < Nuclear2Cost;
+    el.pCoinsBtn.disabled = coins < pCoinsCost;
+    el.FarmBtn.disabled = isTechLocked(TECH_BUTTON_MAP.FarmBtn) || coins < FarmCost;
+    el.MPBtn.disabled = isTechLocked(TECH_BUTTON_MAP.MPBtn) || coins < MPCost;
+    el.MPBtn2.disabled = isTechLocked(TECH_BUTTON_MAP.MPBtn2) || coins < MPCost2;
+    el.MPBtn3.disabled = isTechLocked(TECH_BUTTON_MAP.MPBtn3) || coins < MPCost3;
+    if (el.SolarBtn) {
+        el.SolarBtn.disabled = !modUnlockSolar || isTechLocked(TECH_BUTTON_MAP.SolarBtn) || coins < SolarCost;
+    }
+    if (el.WindBtn) {
+        el.WindBtn.disabled = !modUnlockWind || isTechLocked(TECH_BUTTON_MAP.WindBtn) || coins < WindCost;
+    }
+    if (el.RecyclerBtn) {
+        el.RecyclerBtn.disabled = !modUnlockRecycler || isTechLocked(TECH_BUTTON_MAP.RecyclerBtn) || coins < RecyclerCost;
+    }
+    if (el.FoundryBtn) {
+        el.FoundryBtn.disabled = !modUnlockFoundry || isTechLocked(TECH_BUTTON_MAP.FoundryBtn) || coins < FoundryCost;
+    }
+    if (el.MegaBtn) {
+        el.MegaBtn.disabled = !modUnlockMega || isTechLocked(TECH_BUTTON_MAP.MegaBtn) || coins < MegaCost;
+    }
+
+    const industrialReady = canUsePolicy(industrialLastUsedDay);
+    const transportReady = canUsePolicy(transportLastUsedDay);
+    const grantsReady = canUsePolicy(grantsLastUsedDay) && coins >= 50000;
+
+    el.policyIndustrial.disabled = !industrialReady;
+    el.policyTransport.disabled = !transportReady;
+    el.policyGrants.disabled = !grantsReady;
+
+    const statusParts = [];
+    if (!industrialReady) statusParts.push(`Industrial Support: ${policyCooldownLeft(industrialLastUsedDay)}d`);
+    if (!transportReady) statusParts.push(`Public Transport: ${policyCooldownLeft(transportLastUsedDay)}d`);
+    if (!canUsePolicy(grantsLastUsedDay)) statusParts.push(`Business Grants: ${policyCooldownLeft(grantsLastUsedDay)}d`);
+    if (canUsePolicy(grantsLastUsedDay) && coins < 50000) statusParts.push("Business Grants: need 50,000 coins");
+    el.policyStatus.textContent = statusParts.join(" | ");
+    updateBackground();
+    if (el.activeMods) {
+        el.activeMods.textContent = activeModNames.length ? activeModNames.join(", ") : "None";
+    }
+    if (modDisableParticles && typeof disableSmoke === "function") {
+        disableSmoke();
+    }
+    applyModVisuals();
+
+}
+
+loadGame();
+if (eventLog.length === 0) {
+    addEvent("Mayor briefing: grow the city, keep pollution under control.");
+}
+const loadingScreen = document.getElementById("loadingScreen");
+window.addEventListener("load", () => {
+    setTimeout(() => loadingScreen.classList.add("hidden"), 150);
+});
+const ecoStatusEl = el.ecoStatus;
+let ecoClicks = 0;
+ecoStatusEl.addEventListener("click", () => {
+    ecoClicks++;
+    if (ecoClicks === 7) {
+        addEvent("Easter egg: the air whispers back.");
+        updateUI();
+        ecoClicks = 0;
+    }
+});
+const infoToggle = document.getElementById("infoToggle");
+const infoPanel = document.getElementById("infoPanel");
+infoToggle.addEventListener("click", () => {
+    const isOpen = infoPanel.classList.toggle("open");
+    infoToggle.setAttribute("aria-expanded", String(isOpen));
+});
+
+const categoryBar = document.getElementById("categoryBar");
+const categoryButtons = categoryBar.querySelectorAll("button[data-filter]");
+const buildingButtons = document.querySelectorAll(".button-grid button[data-category]");
+
+function setCategoryFilter(filter) {
+    categoryButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.filter === filter);
+    });
+    buildingButtons.forEach((btn) => {
+        const modKey = btn.dataset.mod;
+        let unlocked = true;
+        if (modKey === "renewable") unlocked = modUnlockRenewable;
+        if (modKey === "industrial") unlocked = modUnlockIndustrial;
+        const lockedByMod = btn.classList.contains("mod-only-block") && !unlocked;
+        const show = !lockedByMod && (filter === "all" || btn.dataset.category === filter);
+        btn.style.display = show ? "" : "none";
+    });
+}
+
+categoryButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setCategoryFilter(btn.dataset.filter));
+});
+function saveGame() {
+    if (!allowSave) return;
+
+    const save = {
+        savedAt: Date.now(),
+        coins,
+        days,
+        minuscoins,
+        population,
+        basePopulationPS,
+        populationPS,
+        cps1, cps2, cps3, cps4, cps5, cps6, cps7, cps8, cps9, cps10, cps11, cps12, cps13, cps14, cps15,
+        pollution,
+        pollutionPerSecond,
+        pollutionReduction,
+        pollutionLevel,
+        smallFactories,
+        mediumFactories,
+        CoalPlants,
+        bigFactories,
+        oilCount,
+        Nuclears,
+        solarPlants,
+        windTurbines,
+        recyclingCenters,
+        foundries,
+        megaPlants,
+        incomeMultiplier,
+        oilIncomeBonus,
+        populationMultiplier,
+        policyMultiplierBonus,
+        eventLog,
+        milestoneIndex,
+        industrialLastUsedDay,
+        transportLastUsedDay,
+        grantsLastUsedDay,
+        upgradeCost,
+        MarketCost,
+        BMarketCost,
+        CoalCost,
+        SfactoryCost,
+        MfactoryCost,
+        BfactoryCost,
+        OilCost,
+        NuclearCost,
+        Nuclear2Cost,
+        pCoinsCost,
+        FarmCost,
+        MPCost,
+        MPCost2,
+        MPCost3,
+        SolarCost,
+        WindCost,
+        RecyclerCost,
+        FoundryCost,
+        MegaCost
+    };
+
+    localStorage.setItem(getSaveKey(activeSlot), JSON.stringify(save));
+}
+
+updateUI();
+
+setInterval(saveGame, 5000);
+window.addEventListener("beforeunload", saveGame);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+body {
+    background-color: rgb(90, 90, 90);
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+body.clean {
+    background-color: #5a8f5a;
+    --ambient-color: rgba(255, 255, 255, 0.55);
+}
+
+body.lesspolluted {
+    background-color: #658f2a;
+    --ambient-color: rgba(255, 255, 255, 0.5);
+}
+
+body.polluted {
+    background-color: #7a7a3a;
+    --ambient-color: rgba(255, 225, 180, 0.35);
+}
+
+body.lessdirty {
+    background-color: #7a613a;
+    --ambient-color: rgba(240, 220, 200, 0.3);
+}
+body.dirty {
+    background-color: #5f4a3a;
+    --ambient-color: rgba(210, 210, 210, 0.25);
+}
+
+body.toxic {
+    background-color: #3a3a3a;
+    --ambient-color: rgba(200, 200, 200, 0.22);
+}
+body.dead {
+    background-color: rgb(34, 34, 34);
+    --ambient-color: rgba(190, 190, 190, 0.2);
+}
+
+    body:not(.loaded) .box,
+    body:not(.loaded) a button {
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(2px);
+    }
+
+    body.loaded .box {
+      animation: fadeUp 0.7s ease forwards 0.1s;
+    }
+
+    body.loaded a:nth-of-type(1) button {
+      animation: fadeUp 0.7s ease forwards 0.22s;
+    }
+
+    body.loaded a:nth-of-type(2) button {
+      animation: fadeUp 0.7s ease forwards 0.32s;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    body.clean .ambient,
+    body.lesspolluted .ambient,
+    body.polluted .ambient,
+    body.lessdirty .ambient,
+    body.dirty .ambient,
+    body.toxic .ambient,
+    body.dead .ambient {
+      opacity: 0.5;
+    }
+
+    body.polluted .ambient,
+    body.lessdirty .ambient {
+      opacity: 0.4;
+    }
+
+    body.dirty .ambient,
+    body.toxic .ambient,
+    body.dead .ambient {
+      opacity: 0.3;
+    }
+
+    .ambient span {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ambient-color, rgba(255, 255, 255, 0.4));
+      filter: blur(0.2px);
+      opacity: 0.8;
+      animation: ambientDrift 18s linear infinite, ambientTwinkle 4.5s ease-in-out infinite;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .leaves {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    body.clean .leaves,
+    body.lesspolluted .leaves {
+      opacity: 0.9;
+    }
+
+    .leaf {
+      position: absolute;
+      top: -10%;
+      width: 20px;
+      height: 12px;
+      background: radial-gradient(circle at 30% 30%, #a7e16f 0%, #7dcf4c 55%, #4f9f2f 100%);
+      border-radius: 0 60% 60% 60%;
+      transform-origin: center;
+      opacity: 0.75;
+      animation: leafFall linear infinite;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,0.25));
+    }
+
+    .leaf::before {
+      content: "";
+      position: absolute;
+      left: 55%;
+      top: 10%;
+      width: 2px;
+      height: 80%;
+      background: rgba(255,255,255,0.35);
+      transform: rotate(20deg);
+      border-radius: 2px;
+    }
+
+    @keyframes leafFall {
+      0% {
+        transform: translate(-10vw, -10vh) rotate(0deg);
+      }
+      50% {
+        transform: translate(10vw, 50vh) rotate(140deg);
+      }
+      100% {
+        transform: translate(-8vw, 115vh) rotate(280deg);
+      }
+    }
+
+    .smoke {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 2;
+      filter: blur(2px);
+    }
+
+    .smoke span {
+      position: absolute;
+      bottom: -30%;
+      width: 50vmin;
+      height: 50vmin;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200, 200, 200, 0.35) 0%, rgba(200, 200, 200, 0.15) 35%, rgba(200, 200, 200, 0) 70%);
+      animation: smokeRise 12s linear infinite;
+      transform: translateX(-50%);
+    }
+
+    .smoke span:nth-child(1) {
+      left: 20%;
+      animation-duration: 14s;
+      animation-delay: -2s;
+      width: 55vmin;
+      height: 55vmin;
+    }
+
+    .smoke span:nth-child(2) {
+      left: 55%;
+      animation-duration: 11s;
+      animation-delay: -5s;
+      width: 45vmin;
+      height: 45vmin;
+    }
+
+    .smoke span:nth-child(3) {
+      left: 80%;
+      animation-duration: 16s;
+      animation-delay: -9s;
+      width: 60vmin;
+      height: 60vmin;
+    }
+
+    @keyframes smokeRise {
+      0% {
+        transform: translate(-50%, 0) scale(0.9);
+        opacity: 0;
+      }
+      15% {
+        opacity: 0.55;
+      }
+      100% {
+        transform: translate(-50%, -120%) scale(1.35);
+        opacity: 0;
+      }
+    }
+
+    body.lessdirty .smoke {
+      opacity: 0.35;
+    }
+
+    body.dirty .smoke {
+      opacity: 0.55;
+    }
+
+    body.toxic .smoke {
+      opacity: 0.75;
+    }
+
+    body.dead .smoke {
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-family:Arial, Helvetica, sans-serif;
+      text-shadow: 3px 3px 0 #00000043;
+      color: white;
+    }
+    p {
+        font-family:Arial, Helvetica, sans-serif;
+        text-shadow: 3px 3px 0 #00000043;
+        color: white;
+    }
+    button {
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        background-color: gray;
+        padding: 5px 13px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        box-shadow: 3px 3px 0 #00000061;
+        margin-top: 20px;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    button::after {
+        content: "";
+        position: absolute;
+        inset: -40% -60%;
+        background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+        transform: translateX(-120%) rotate(15deg);
+        opacity: 0;
+        transition: transform 0.6s ease, opacity 0.6s ease;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 4px 4px 0 #00000061;
+        filter: brightness(1.05);
+    }
+
+    button:hover::after {
+        transform: translateX(120%) rotate(15deg);
+        opacity: 0.6;
+    }
+
+    button:active {
+        transform: translateY(1px);
+        box-shadow: 2px 2px 0 #00000061;
+    }
+    .box {
+        background: #2e2e2e;
+        padding: 25px;
+        border-radius: 12px;
+        width: 280px;
+        text-align: center;
+    }
+
+    .loading-screen {
+        position: fixed;
+        inset: 0;
+        background-color: rgb(90, 90, 90);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 1000;
+        opacity: 1;
+        transition: opacity 0.25s ease;
+    }
+
+    .loading-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .loading-screen::after {
+        content: "";
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.35);
+        border-top-color: rgba(255, 255, 255, 0.95);
+        margin-left: 12px;
+        animation: loadingSpin 0.9s linear infinite;
+    }
+
+    @keyframes fadeUp {
+        0% { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    @keyframes loadingSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @keyframes ambientDrift {
+        0% { transform: translate(-5vw, 10vh) scale(0.8); }
+        50% { transform: translate(5vw, 50vh) scale(1); }
+        100% { transform: translate(-3vw, 110vh) scale(0.9); }
+    }
+
+    @keyframes ambientTwinkle {
+        0%, 100% { opacity: 0.35; }
+        50% { opacity: 0.9; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+    </style>
+</head>
+<body>
+
+<audio id="bgmusic" src="bgmusic.mp3" loop autoplay></audio>
+<div id="loadingScreen" class="loading-screen">Loading...</div>
+<div class="ambient" aria-hidden="true">
+    <span style="left: 8%; animation-duration: 16s; animation-delay: -3s; transform: scale(0.8);"></span>
+    <span style="left: 18%; animation-duration: 21s; animation-delay: -9s; transform: scale(1.0);"></span>
+    <span style="left: 28%; animation-duration: 19s; animation-delay: -7s; transform: scale(0.9);"></span>
+    <span style="left: 38%; animation-duration: 24s; animation-delay: -12s; transform: scale(1.1);"></span>
+    <span style="left: 48%; animation-duration: 17s; animation-delay: -5s; transform: scale(0.85);"></span>
+    <span style="left: 58%; animation-duration: 23s; animation-delay: -11s; transform: scale(1.05);"></span>
+    <span style="left: 68%; animation-duration: 20s; animation-delay: -6s; transform: scale(0.95);"></span>
+    <span style="left: 78%; animation-duration: 26s; animation-delay: -14s; transform: scale(1.15);"></span>
+    <span style="left: 88%; animation-duration: 22s; animation-delay: -10s; transform: scale(0.9);"></span>
+    <span style="left: 95%; animation-duration: 18s; animation-delay: -4s; transform: scale(0.85);"></span>
+</div>
+<div class="leaves" aria-hidden="true">
+    <span class="leaf" style="left: 6%; animation-duration: 14s; animation-delay: -2s; transform: rotate(20deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 20%; animation-duration: 17s; animation-delay: -6s; transform: rotate(-10deg) scale(1.1);"></span>
+    <span class="leaf" style="left: 34%; animation-duration: 13s; animation-delay: -4s; transform: rotate(35deg) scale(0.8);"></span>
+    <span class="leaf" style="left: 50%; animation-duration: 19s; animation-delay: -8s; transform: rotate(5deg) scale(1.0);"></span>
+    <span class="leaf" style="left: 66%; animation-duration: 15s; animation-delay: -3s; transform: rotate(-25deg) scale(0.9);"></span>
+    <span class="leaf" style="left: 80%; animation-duration: 18s; animation-delay: -7s; transform: rotate(15deg) scale(1.15);"></span>
+    <span class="leaf" style="left: 92%; animation-duration: 16s; animation-delay: -5s; transform: rotate(-5deg) scale(0.95);"></span>
+</div>
+<div class="smoke" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+<div class="box">
+    <h1>Info</h1>
+<p>
+    1. Every 10 days you will pay 10 coins for nothing :)
+</p>
+<p>
+    2. 1 day = 10 sec    
+</p>
+<p>
+    3.Every 10 days the Faines will incress
+</p>
+<p>
+    4.For Every 5 pollution you will get fine
+</p>
+<a href="FactoryInf.html"><button>Building Info</button></a>
+</div>
+<a href="lobby.html"><button>back</button></a>
+
+<script>
+    const bgm = document.getElementById("bgmusic");
+    if (bgm) {
+        bgm.volume = 0.35;
+        const tryPlay = () => bgm.play().catch(() => {});
+        window.addEventListener("load", tryPlay);
+        document.addEventListener("click", tryPlay, { once: true });
+        document.addEventListener("keydown", tryPlay, { once: true });
+    }
+
+    const loadingScreen = document.getElementById("loadingScreen");
+    window.addEventListener("load", () => {
+        setTimeout(() => {
+            loadingScreen.classList.add("hidden");
+            document.body.classList.add("loaded");
+        }, 150);
+    });
+
+    document.querySelectorAll("a[href]").forEach((link) => {
+        link.addEventListener("click", () => {
+            loadingScreen.classList.remove("hidden");
+        });
+    });
+
+    const r = Math.random();
+
+if (r < 0.1) {
+  document.body.classList.add("clean");
+} else if (r < 0.24) {
+  document.body.classList.add("lesspolluted");
+} else if (r < 0.38) {
+  document.body.classList.add("polluted");
+} else if (r < 0.52) {
+  document.body.classList.add("lessdirty");
+} else if (r < 0.66) {
+  document.body.classList.add("dirty");
+} else if (r < 0.8) {
+  document.body.classList.add("toxic");
+} else {
+  document.body.classList.add("dead");
+}
+</script>
+</body>
+</html>
