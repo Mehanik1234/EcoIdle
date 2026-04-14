@@ -402,6 +402,20 @@ body.toxic {
       z-index: 3;
     }
 
+    .lobby-stats {
+      width: min(560px, 92vw);
+      margin: 8px 0 18px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 3px 3px 0 #00000055;
+      font-size: 13px;
+      color: #f1f1f1;
+      text-align: center;
+      z-index: 3;
+    }
+
     .loading-screen {
       position: fixed;
       inset: 0;
@@ -604,9 +618,10 @@ body.toxic {
     <span></span>
   </div>
 
-  <h5>Version: beta 0.9.26</h5>
+  <h5>Version: 1.0.26</h5>
   <h1 id="title">EcoIdle</h1>
   <div id="splash"></div>
+  <div class="lobby-stats" id="lobbyStats">Loading stats...</div>
 
   <div class="save-slots" id="saveSlots" aria-label="Save slots">
     <div class="save-slot" data-slot="1">
@@ -805,6 +820,7 @@ if (r < 0.1) {
     const META_KEY = "idleGameSlotsMeta";
     const slotsRoot = document.getElementById("saveSlots");
     const mainPlayBtn = document.getElementById("mainPlayBtn");
+    const lobbyStats = document.getElementById("lobbyStats");
 
     function clampSlot(value) {
       const slot = Number.parseInt(value, 10);
@@ -814,6 +830,20 @@ if (r < 0.1) {
 
     function getSaveKey(slot) {
       return `${SAVE_KEY_PREFIX}${slot}`;
+    }
+
+    function readActiveSave() {
+      const slot = clampSlot(localStorage.getItem(ACTIVE_SLOT_KEY) || 1);
+      const save = getSlotSave(slot);
+      if (save) return { slot, save };
+      let legacy = null;
+      try {
+        legacy = JSON.parse(localStorage.getItem(LEGACY_SAVE_KEY) || "null");
+      } catch {
+        legacy = null;
+      }
+      if (legacy) return { slot: "Legacy", save: legacy };
+      return { slot, save: null };
     }
 
     function migrateLegacySave() {
@@ -869,6 +899,21 @@ if (r < 0.1) {
       return Math.floor(value).toLocaleString("en-US");
     }
 
+    function renderLobbyStats() {
+      if (!lobbyStats) return;
+      const { slot, save } = readActiveSave();
+      if (!save) {
+        lobbyStats.textContent = "No save found. Start the game to see live stats.";
+        return;
+      }
+      const coins = formatNumber(save.coins ?? 0);
+      const population = formatNumber(save.population ?? 0);
+      const pollution = Number.isFinite(save.pollution) ? save.pollution.toFixed(1) : "0.0";
+      const days = Number.isFinite(save.days) ? save.days : 0;
+      const slotLabel = slot === "Legacy" ? "Legacy" : `Slot ${slot}`;
+      lobbyStats.textContent = `${slotLabel} \u2022 Coins: ${coins} \u2022 Population: ${population} \u2022 Pollution: ${pollution} \u2022 Days: ${days}`;
+    }
+
     function renderSlots() {
       if (!slotsRoot) return;
       const meta = loadMeta();
@@ -904,6 +949,8 @@ if (r < 0.1) {
 
         slotEl.classList.toggle("active", slot === activeSlot);
       });
+
+      renderLobbyStats();
     }
 
     if (slotsRoot) {
@@ -947,6 +994,8 @@ if (r < 0.1) {
 
     migrateLegacySave();
     renderSlots();
+    renderLobbyStats();
+    setInterval(renderLobbyStats, 1000);
 
   </script>
 

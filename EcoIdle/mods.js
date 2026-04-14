@@ -44,6 +44,90 @@
       name: "Scarcity Mode",
       description: "Lower income, higher taxes.",
       effects: { incomeMultiplier: -0.15, taxMultiplier: 0.25 }
+    },
+    {
+      id: "green-megacity-pack",
+      name: "Green Megacity Pack",
+      description: "Big eco bundle: renewables unlocked, cleaner air, faster growth, and light income boosts.",
+      effects: {
+        unlockSolar: true,
+        unlockWind: true,
+        unlockRecycler: true,
+        pollutionReduction: 3,
+        pollutionMultiplier: -0.15,
+        populationPS: 20,
+        incomeMultiplier: 0.06,
+        baseIncome: 15,
+        taxMultiplier: -0.08,
+        uiGlow: true
+      }
+    },
+    {
+      id: "industrial-boom-pack",
+      name: "Industrial Boom Pack",
+      description: "Heavy industry bundle: foundry + mega plant, big income, but dirtier and riskier.",
+      effects: {
+        unlockFoundry: true,
+        unlockMega: true,
+        incomeMultiplier: 0.18,
+        baseIncome: 25,
+        pollutionMultiplier: 0.3,
+        pollutionReduction: -1,
+        taxMultiplier: 0.12,
+        eventRisk: 0.03,
+        shader: true,
+        uiGlow: true
+      }
+    },
+    {
+      id: "urban-planner-pack",
+      name: "Urban Planner Pack",
+      description: "City planning bundle: balanced income, lower taxes, and greener growth.",
+      effects: {
+        unlockSolar: true,
+        unlockRecycler: true,
+        unlockFoundry: true,
+        incomeMultiplier: 0.1,
+        pollutionReduction: 2,
+        populationPS: 12,
+        taxMultiplier: -0.05,
+        eventRisk: -0.01,
+        baseIncome: 10,
+        uiGlow: true
+      }
+    },
+    {
+      id: "crisis-simulator-pack",
+      name: "Crisis Simulator Pack",
+      description: "Hardcore pack: bigger profits, much higher risk, taxes, and pollution.",
+      effects: {
+        incomeMultiplier: 0.25,
+        pollutionMultiplier: 0.45,
+        taxMultiplier: 0.2,
+        eventRisk: 0.08,
+        populationPS: -25,
+        baseIncome: -10,
+        disableParticles: true,
+        shader: true,
+        uiGlow: true
+      }
+    },
+    {
+      id: "automation-suite-pack",
+      name: "Automation Suite Pack",
+      description: "All-round automation: unlocks content and boosts economy with a pollution tradeoff.",
+      effects: {
+        unlockSolar: true,
+        unlockWind: true,
+        unlockRecycler: true,
+        unlockFoundry: true,
+        unlockMega: true,
+        incomeMultiplier: 0.12,
+        baseIncome: 18,
+        pollutionReduction: 1.5,
+        pollutionMultiplier: 0.1,
+        taxMultiplier: 0.05
+      }
     }
   ];
 

@@ -520,7 +520,7 @@
                                     <div class="node-title">Overclocked Production</div>
                                     <div class="node-req">Population: 5,500</div>
                                     <div class="node-req">Cost: 20,000</div>
-                                    <div class="node-req">+10% income, +10% pollution</div>
+                                    <div class="node-req">+5% income, +5% pollution</div>
                                   </div>
                                   <ul>
                                     <li>
@@ -528,7 +528,7 @@
                                         <div class="node-title">Mega Production Line</div>
                                         <div class="node-req">Population: 7,000</div>
                                         <div class="node-req">Cost: 35,000</div>
-                                        <div class="node-req">+10% income, +10% pollution</div>
+                                        <div class="node-req">+5% income, +5% pollution</div>
                                       </div>
                                     </li>
                                   </ul>
@@ -548,7 +548,7 @@
                                     <div class="node-title">Expensive Security System</div>
                                     <div class="node-req">Population: 6,000</div>
                                     <div class="node-req">Cost: 24,000</div>
-                                    <div class="node-req">+10% population growth, -30% income</div>
+                                    <div class="node-req">+10% population growth, -20% income</div>
                                   </div>
                                   <ul>
                                     <li>
@@ -556,7 +556,7 @@
                                         <div class="node-title">Total Surveillance Network</div>
                                         <div class="node-req">Population: 8,000</div>
                                         <div class="node-req">Cost: 40,000</div>
-                                        <div class="node-req">+10% population growth, -30% income</div>
+                                        <div class="node-req">+10% population growth, -10% income</div>
                                       </div>
                                     </li>
                                   </ul>
@@ -636,10 +636,30 @@
                                                             <div class="node-req">Population: 15,000</div>
                                                             <div class="node-req">Cost: 300,000</div>
                                                           </div>
+                                                          <ul>
+                                                            <li>
+                                                              <div class="node nuclear" data-req-pop="16000" data-req-coins="260000" data-req-buildings="all-reactors">
+                                                                <div class="node-title">Nuclear Expansion</div>
+                                                                <div class="node-req">Population: 16,000</div>
+                                                                <div class="node-req">Cost: 260,000</div>
+                                                                <div class="node-req">Requires: Own Nuclear Plant + Antimatter Reactor</div>
+                                                                <div class="node-req">+200 income per reactor, +5 pollution per reactor, +0.1% reactor explosion</div>
+                                                              </div>
+                                                            </li>
+                                                          </ul>
                                                         </li>
                                                       </ul>
                                                     </li>
                                                   </ul>
+                                                </li>
+                                                <li>
+                                                  <div class="node industrial" data-req-pop="10000" data-req-coins="180000" data-req-buildings="all-factories">
+                                                    <div class="node-title">Factory Expansion</div>
+                                                    <div class="node-req">Population: 10,000</div>
+                                                    <div class="node-req">Cost: 180,000</div>
+                                                    <div class="node-req">Requires: Own all factory types</div>
+                                                    <div class="node-req">+10 income per factory, +2 pollution per factory</div>
+                                                  </div>
                                                 </li>
                                                 <li>
                                                   <div class="node industrial" data-req-pop="9000" data-req-coins="50000">
@@ -668,6 +688,15 @@
                               </ul>
                             </li>
                           </ul>
+                        </li>
+                        <li>
+                          <div class="node" data-req-pop="8000" data-req-coins="120000" data-req-buildings="all-markets">
+                            <div class="node-title">Market Expansion</div>
+                            <div class="node-req">Population: 8,000</div>
+                            <div class="node-req">Cost: 120,000</div>
+                            <div class="node-req">Requires: Own all market types</div>
+                            <div class="node-req">+1 population per market, +3 income per market</div>
+                          </div>
                         </li>
                       </ul>
                     </li>
@@ -860,6 +889,77 @@
       return state;
     }
 
+    function safeNumber(value) {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function getBuildingCounts(save) {
+      if (!save || typeof save !== "object") {
+        return {
+          smallMarkets: 0,
+          mediumMarkets: 0,
+          bigMarkets: 0,
+          smallFactories: 0,
+          mediumFactories: 0,
+          bigFactories: 0,
+          nuclears: 0,
+          antimatter: 0
+        };
+      }
+      const smallMarkets = Number.isFinite(save.smallMarkets)
+        ? save.smallMarkets
+        : Math.round(safeNumber(save.cps1) / 1);
+      const mediumMarkets = Number.isFinite(save.mediumMarkets)
+        ? save.mediumMarkets
+        : Math.round(safeNumber(save.cps2) / 2);
+      const bigMarkets = Number.isFinite(save.bigMarkets)
+        ? save.bigMarkets
+        : Math.round(safeNumber(save.cps3) / 4);
+      const smallFactories = Number.isFinite(save.smallFactories)
+        ? save.smallFactories
+        : Math.round(safeNumber(save.cps4) / 10);
+      const mediumFactories = Number.isFinite(save.mediumFactories)
+        ? save.mediumFactories
+        : Math.round(safeNumber(save.cps5) / 20);
+      const bigFactories = Number.isFinite(save.bigFactories)
+        ? save.bigFactories
+        : Math.round(safeNumber(save.cps6) / 40);
+      const nuclears = Number.isFinite(save.Nuclears)
+        ? save.Nuclears
+        : Math.round(safeNumber(save.cps7) / 100);
+      const antimatter = Number.isFinite(save.antimatterReactors)
+        ? save.antimatterReactors
+        : Math.round(safeNumber(save.cps8) / 300);
+      return {
+        smallMarkets,
+        mediumMarkets,
+        bigMarkets,
+        smallFactories,
+        mediumFactories,
+        bigFactories,
+        nuclears,
+        antimatter
+      };
+    }
+
+    function checkBuildingRequirement(req, counts) {
+      if (!req) return { ok: true, reason: "" };
+      if (!counts) return { ok: false, reason: "Need buildings." };
+      if (req === "all-markets") {
+        const ok = counts.smallMarkets > 0 && counts.mediumMarkets > 0 && counts.bigMarkets > 0;
+        return { ok, reason: "Need all market types." };
+      }
+      if (req === "all-factories") {
+        const ok = counts.smallFactories > 0 && counts.mediumFactories > 0 && counts.bigFactories > 0;
+        return { ok, reason: "Need all factory types." };
+      }
+      if (req === "all-reactors") {
+        const ok = counts.nuclears > 0 && counts.antimatter > 0;
+        return { ok, reason: "Need Nuclear Plant + Antimatter Reactor." };
+      }
+      return { ok: true, reason: "" };
+    }
+
     const statsEl = document.getElementById("techStats");
     const modsTree = document.getElementById("modsTree");
     const modsNote = document.getElementById("modsNote");
@@ -867,6 +967,7 @@
       "Small Market": "small-market",
       "Medium Market": "medium-market",
       "Big Market": "big-market",
+      "Market Expansion": "market-expansion",
       "Industrialisation": "industrialisation",
       "Mass Production": "mass-production",
       "Overclocked Production": "overclocked-production",
@@ -886,9 +987,11 @@
       "Small Factory": "small-factory",
       "Medium Factory": "medium-factory",
       "Big Factory": "big-factory",
+      "Factory Expansion": "factory-expansion",
       "Nuclear Power Tech": "nuclear-power-tech",
       "Nuclear Power Plant": "nuclear-power-plant",
       "Antimatter Reactor": "antimatter-reactor",
+      "Nuclear Expansion": "nuclear-expansion",
       "Industrialisation Tech": "industrialisation-tech",
       "Oil Refinery": "oil-refinery",
       "Renewable Expansion": "renewable-expansion",
@@ -930,17 +1033,24 @@
         if (!li) return;
         li.style.display = enabledSet.has(modId) ? "" : "none";
       });
-      const showMods = enabledSet.size > 0;
-      if (modsTree) modsTree.style.display = showMods ? "" : "none";
-      if (modsNote) modsNote.style.display = showMods ? "" : "none";
+      if (modsTree) modsTree.style.display = "";
+      if (modsNote) {
+        modsNote.style.display = "";
+        if (enabledMods.length) {
+          modsNote.textContent = `Enabled mods: ${enabledMods.join(", ")}`;
+        } else {
+          modsNote.textContent = "No mods enabled. Enable mods in the Mods menu to unlock this branch.";
+        }
+      }
     }
 
-    function updateAvailability(coins, population, modState, techState) {
+    function updateAvailability(coins, population, modState, techState, counts) {
       nodes.forEach((node) => {
         const techId = node.dataset.techId;
         const reqCoins = parseRequirementValue(node.dataset.reqCoins);
         const reqPop = parseRequirementValue(node.dataset.reqPop);
         const reqMod = node.dataset.reqMod;
+        const reqBuildings = node.dataset.reqBuildings;
         const choiceGroup = node.dataset.choiceGroup;
         const choiceId = node.dataset.choiceId;
         const chosenPath = choiceGroup ? techState.choices?.[choiceGroup] : null;
@@ -968,6 +1078,8 @@
         if (!parentResearched) ok = false;
         if (reqCoins > 0 && coins < reqCoins) ok = false;
         if (reqPop > 0 && population < reqPop) ok = false;
+        const buildingCheck = checkBuildingRequirement(reqBuildings, counts);
+        if (!buildingCheck.ok) ok = false;
         if (choiceLocked) ok = false;
         if (reqMod) {
           const modEntry = modState[reqMod];
@@ -978,7 +1090,15 @@
         node.classList.toggle("available", ok);
         node.classList.toggle("locked", !ok);
         if (statusEl) {
-          statusEl.textContent = ok ? "CLICK TO RESEARCH" : (choiceLocked ? "LOCKED (OTHER PATH)" : "LOCKED");
+          if (ok) {
+            statusEl.textContent = "CLICK TO RESEARCH";
+          } else if (choiceLocked) {
+            statusEl.textContent = "LOCKED (OTHER PATH)";
+          } else if (!buildingCheck.ok) {
+            statusEl.textContent = "LOCKED (NEED BUILDINGS)";
+          } else {
+            statusEl.textContent = "LOCKED";
+          }
         }
       });
     }
@@ -1000,6 +1120,7 @@
       currentTechState = loadTechState(slot);
       const coins = save?.coins ?? 0;
       const population = save?.population ?? 0;
+      const counts = getBuildingCounts(save);
 
       let line = "";
       if (!save) {
@@ -1017,7 +1138,7 @@
 
       const modState = readModState();
       updateModVisibility(modState);
-      updateAvailability(coins, population, modState, currentTechState);
+      updateAvailability(coins, population, modState, currentTechState, counts);
     }
 
     function attemptResearch(node) {
@@ -1036,6 +1157,7 @@
       const reqCoins = parseRequirementValue(node.dataset.reqCoins);
       const reqPop = parseRequirementValue(node.dataset.reqPop);
       const reqMod = node.dataset.reqMod;
+      const reqBuildings = node.dataset.reqBuildings;
       const choiceGroup = node.dataset.choiceGroup;
       const choiceId = node.dataset.choiceId;
       const parentNode = getParentNode(node);
@@ -1057,6 +1179,13 @@
       const modState = readModState();
       if (reqMod && !modState[reqMod]?.enabled) {
         setTechNotice("Enable the required mod first.");
+        return;
+      }
+
+      const counts = getBuildingCounts(save);
+      const buildingCheck = checkBuildingRequirement(reqBuildings, counts);
+      if (!buildingCheck.ok) {
+        setTechNotice(buildingCheck.reason || "Need required buildings.");
         return;
       }
 

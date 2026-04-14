@@ -621,7 +621,7 @@ button:disabled {
     <a class="back-top" href="#top">Back to Top</a>
 </div>
 
-<script src="mods.js"></script>
+<script src="../mods.js"></script>
 <script>
 const bgm = document.getElementById("bgmusic");
 if (bgm) {
@@ -655,6 +655,7 @@ const TECH_LABELS = {
     "small-market": "Small Market",
     "medium-market": "Medium Market",
     "big-market": "Big Market",
+    "market-expansion": "Market Expansion",
     "industrialisation": "Industrialisation",
     "mass-production": "Mass Production",
     "overclocked-production": "Overclocked Production",
@@ -674,9 +675,11 @@ const TECH_LABELS = {
     "small-factory": "Small Factory",
     "medium-factory": "Medium Factory",
     "big-factory": "Big Factory",
+    "factory-expansion": "Factory Expansion",
     "nuclear-power-tech": "Nuclear Power Tech",
     "nuclear-power-plant": "Nuclear Power Plant",
     "antimatter-reactor": "Antimatter Reactor",
+    "nuclear-expansion": "Nuclear Expansion",
     "industrialisation-tech": "Industrialisation Tech",
     "oil-refinery": "Oil Refinery",
     "renewable-expansion": "Renewable Expansion",
@@ -730,6 +733,10 @@ let activeModNames = [];
 let techIncomeMultiplierBonus = 0;
 let techPollutionMultiplierBonus = 0;
 let techPopulationMultiplierBonus = 0;
+let techBaseIncomeBonus = 0;
+let techPopulationPSBonus = 0;
+let techPollutionPerSecondBonus = 0;
+let techReactorExplosionBonus = 0;
 
 // pollution
 let pollution = 0;
@@ -743,12 +750,16 @@ let basePopulationPS = 50;
 let populationPS = basePopulationPS;
 
 //building
+let smallMarkets = 1;
+let mediumMarkets = 0;
+let bigMarkets = 0;
 let smallFactories = 0;
 let mediumFactories = 0;
 let CoalPlants = 0;
 let bigFactories = 0;
 let oilCount = 0;
 let Nuclears = 0;
+let antimatterReactors = 0;
 let solarPlants = 0;
 let windTurbines = 0;
 let recyclingCenters = 0;
@@ -1103,7 +1114,7 @@ function recalculateMultiplier() {
 }
 
 function recalculatePopulationPS() {
-    const base = basePopulationPS + modPopulationPSBonus;
+    const base = basePopulationPS + modPopulationPSBonus + techPopulationPSBonus;
     let raw;
     if (pollution < 10) {
         raw = base;
@@ -1123,20 +1134,32 @@ function computeTechBonuses(state) {
     let income = 0;
     let pollution = 0;
     let populationGrowth = 0;
+    let baseIncome = 0;
+    let populationPS = 0;
+    let pollutionPerSecondBonus = 0;
+    let reactorExplosionRisk = 0;
 
-    const massPath = ["mass-production", "overclocked-production", "mega-production-line"];
-    massPath.forEach((id) => {
+    const massBonuses = {
+        "mass-production": 0.10,
+        "overclocked-production": 0.05,
+        "mega-production-line": 0.05
+    };
+    Object.entries(massBonuses).forEach(([id, bonus]) => {
         if (researched[id]) {
-            income += 0.10;
-            pollution += 0.10;
+            income += bonus;
+            pollution += bonus;
         }
     });
 
-    const securityPath = ["advanced-security-system", "expensive-security-system", "total-surveillance-network"];
-    securityPath.forEach((id) => {
+    const securityIncome = {
+        "advanced-security-system": -0.30,
+        "expensive-security-system": -0.20,
+        "total-surveillance-network": -0.10
+    };
+    Object.entries(securityIncome).forEach(([id, incomePenalty]) => {
         if (researched[id]) {
             populationGrowth += 0.10;
-            income -= 0.30;
+            income += incomePenalty;
         }
     });
 
@@ -1148,7 +1171,30 @@ function computeTechBonuses(state) {
         }
     });
 
-    return { income, pollution, populationGrowth };
+    const marketExpansion = Boolean(researched["market-expansion"]);
+    const factoryExpansion = Boolean(researched["factory-expansion"]);
+    const nuclearExpansion = Boolean(researched["nuclear-expansion"]);
+    const marketCount = Math.max(0, smallMarkets) + Math.max(0, mediumMarkets) + Math.max(0, bigMarkets);
+    const factoryCount = Math.max(0, smallFactories) + Math.max(0, mediumFactories) + Math.max(0, bigFactories);
+    const reactorCount = Math.max(0, Nuclears) + Math.max(0, antimatterReactors);
+
+    if (marketExpansion && marketCount > 0) {
+        baseIncome += marketCount * 3;
+        populationPS += marketCount;
+    }
+
+    if (factoryExpansion && factoryCount > 0) {
+        baseIncome += factoryCount * 10;
+        pollutionPerSecondBonus += factoryCount * 2;
+    }
+
+    if (nuclearExpansion && reactorCount > 0) {
+        baseIncome += reactorCount * 200;
+        pollutionPerSecondBonus += reactorCount * 5;
+        reactorExplosionRisk += reactorCount * 0.001;
+    }
+
+    return { income, pollution, populationGrowth, baseIncome, populationPS, pollutionPerSecond: pollutionPerSecondBonus, reactorExplosionRisk };
 }
 
 function applyTechBonuses(state) {
@@ -1156,6 +1202,10 @@ function applyTechBonuses(state) {
     techIncomeMultiplierBonus = bonuses.income;
     techPollutionMultiplierBonus = bonuses.pollution;
     techPopulationMultiplierBonus = bonuses.populationGrowth;
+    techBaseIncomeBonus = bonuses.baseIncome || 0;
+    techPopulationPSBonus = bonuses.populationPS || 0;
+    techPollutionPerSecondBonus = bonuses.pollutionPerSecond || 0;
+    techReactorExplosionBonus = bonuses.reactorExplosionRisk || 0;
 }
 
 function addEvent(text) {
@@ -1205,6 +1255,7 @@ function buyUpgrade() {
     if (coins >= upgradeCost) {
         coins -= upgradeCost;
         cps1 += 1;
+        smallMarkets++;
         basePopulationPS++;
         upgradeCost = Math.floor(upgradeCost * 1.12);
         updateUI();
@@ -1216,6 +1267,7 @@ function buyMarket() {
     if (coins >= MarketCost) {
         coins -= MarketCost;
         cps2 += 2;
+        mediumMarkets++;
         basePopulationPS++;
         MarketCost = Math.floor(MarketCost * 1.1);
         updateUI();
@@ -1227,6 +1279,7 @@ function buyBigMarket() {
     if (coins >= BMarketCost) {
         coins -= BMarketCost;
         cps3 += 4;
+        bigMarkets++;
         basePopulationPS++;
         BMarketCost = Math.floor(BMarketCost * 1.09);
         updateUI();
@@ -1315,7 +1368,8 @@ function buyNuclear2() {
     if (!ensureTechResearched(TECH_BUTTON_MAP.Nuclear2Btn)) return;
     if (coins >= Nuclear2Cost) {
         coins -= Nuclear2Cost;
-        cps8 += 300;
+        antimatterReactors++;
+        cps8 = antimatterReactors * 300;
         pollutionPerSecond += 10;
         Nuclear2Cost = Math.floor(Nuclear2Cost * 1.07);
         updateUI();
@@ -1536,6 +1590,13 @@ function loadGame() {
     cps14 = save.cps14 ?? cps14;
     cps15 = save.cps15 ?? cps15;
 
+    smallMarkets = Number.isFinite(save.smallMarkets) ? save.smallMarkets : Math.max(0, Math.round((cps1 ?? 0) / 1));
+    mediumMarkets = Number.isFinite(save.mediumMarkets) ? save.mediumMarkets : Math.max(0, Math.round((cps2 ?? 0) / 2));
+    bigMarkets = Number.isFinite(save.bigMarkets) ? save.bigMarkets : Math.max(0, Math.round((cps3 ?? 0) / 4));
+    antimatterReactors = Number.isFinite(save.antimatterReactors)
+        ? save.antimatterReactors
+        : Math.max(0, Math.round((cps8 ?? 0) / 300));
+
     pollution = save.pollution ?? pollution;
     pollutionPerSecond = save.pollutionPerSecond ?? pollutionPerSecond;
     pollutionReduction = save.pollutionReduction ?? pollutionReduction;
@@ -1590,6 +1651,10 @@ function loadGame() {
     RecyclerCost = save.RecyclerCost ?? RecyclerCost;
     FoundryCost = save.FoundryCost ?? FoundryCost;
     MegaCost = save.MegaCost ?? MegaCost;
+
+    applyTechBonuses(techState);
+    recalculateMultiplier();
+    recalculatePopulationPS();
 }
 
 
@@ -1608,7 +1673,7 @@ setInterval(() => {
 setInterval(() => {
     const totalReduction = pollutionReduction + modPollutionReductionBonus;
     const pollutionMultiplier = Math.max(0, 1 + modPollutionMultiplierBonus + techPollutionMultiplierBonus);
-    pollution += (pollutionPerSecond * pollutionMultiplier) - totalReduction; // фабрики минус очистка
+    pollution += (getPollutionPerSecond() * pollutionMultiplier) - totalReduction; // фабрики минус очистка
     if (pollution < 0) pollution = 0;
 
     // уровень загрязнения и штрафы
@@ -1752,9 +1817,11 @@ setInterval(() => {
         }
     }
 
-    if (Nuclears >= 1 && population >= 2000) {
-        if (Math.random() < 0.01) {
-            addEvent("Your Nuclear Power Plant exploded!!!");
+    const reactorCount = Nuclears + antimatterReactors;
+    if (reactorCount >= 1 && population >= 2000) {
+        const explosionChance = 0.01 + techReactorExplosionBonus;
+        if (Math.random() < explosionChance) {
+            addEvent("A reactor exploded!!!");
             pollution += 300;
             minuscoins += 50;
             population -= 1000;
@@ -1832,6 +1899,10 @@ function enableSmoke() {
     }
 }
 
+function getPollutionPerSecond() {
+    return pollutionPerSecond + techPollutionPerSecondBonus;
+}
+
 function disableSmoke() {
     smokeActive = false;
     smoke.style.display = "none";
@@ -1839,7 +1910,51 @@ function disableSmoke() {
 }
 
 function getBaseIncome() {
-    return cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8 + cps9 + cps10 + cps11 + cps12 + cps13 + cps14 + cps15 + modBaseIncomeBonus;
+    return cps1 + cps2 + cps3 + cps4 + cps5 + cps6 + cps7 + cps8 + cps9 + cps10 + cps11 + cps12 + cps13 + cps14 + cps15 + modBaseIncomeBonus + techBaseIncomeBonus;
+}
+
+function setButtonLabel(button, label) {
+    if (!button) return;
+    const textNode = Array.from(button.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
+    if (textNode) {
+        textNode.textContent = `${label} - `;
+    } else {
+        button.insertBefore(document.createTextNode(`${label} - `), button.firstChild);
+    }
+}
+
+function updateBuildingLabels() {
+    const marketBonus = isTechResearched("market-expansion") ? 3 : 0;
+    const smallMarketIncome = 1 + marketBonus;
+    const mediumMarketIncome = 2 + marketBonus;
+    const bigMarketIncome = 4 + marketBonus;
+
+    setButtonLabel(el.upgradeBtn, `Small Market (+${smallMarketIncome}/sec)`);
+    setButtonLabel(el.MarketBtn, `Medium Market (+${mediumMarketIncome}/sec)`);
+    setButtonLabel(el.BMarketBtn, `Big Market (+${bigMarketIncome}/sec)`);
+
+    const factoryIncomeBonus = isTechResearched("factory-expansion") ? 10 : 0;
+    const factoryPollutionBonus = isTechResearched("factory-expansion") ? 2 : 0;
+    const smallFactoryIncome = 10 + factoryIncomeBonus;
+    const mediumFactoryIncome = 20 + factoryIncomeBonus;
+    const bigFactoryIncome = 40 + factoryIncomeBonus;
+    const smallFactoryPollution = 1 + factoryPollutionBonus;
+    const mediumFactoryPollution = 2 + factoryPollutionBonus;
+    const bigFactoryPollution = 3 + factoryPollutionBonus;
+
+    setButtonLabel(el.SfactoryBtn, `Small Factory (+${smallFactoryIncome}/sec, +${smallFactoryPollution} pollution)`);
+    setButtonLabel(el.MfactoryBtn, `Medium Factory (+${mediumFactoryIncome}/sec, +${mediumFactoryPollution} pollution)`);
+    setButtonLabel(el.BfactoryBtn, `Big Factory (+${bigFactoryIncome}/sec, +${bigFactoryPollution} pollution)`);
+
+    const reactorIncomeBonus = isTechResearched("nuclear-expansion") ? 200 : 0;
+    const reactorPollutionBonus = isTechResearched("nuclear-expansion") ? 5 : 0;
+    const nuclearIncome = 100 + reactorIncomeBonus;
+    const antimatterIncome = 300 + reactorIncomeBonus;
+    const nuclearPollution = 5 + reactorPollutionBonus;
+    const antimatterPollution = 10 + reactorPollutionBonus;
+
+    setButtonLabel(el.NuclearBtn, `Nuclear power plant (+${nuclearIncome}/sec, +${nuclearPollution} pollution)`);
+    setButtonLabel(el.Nuclear2Btn, `Antimatter Reactor (+${antimatterIncome}/sec, +${antimatterPollution} pollution)`);
 }
 
 // UI
@@ -1864,7 +1979,9 @@ function updateUI() {
     el.perSecond.textContent = formatNum(Math.floor(baseIncome * incomeMultiplier));
     el.multiplier.textContent = incomeMultiplier.toFixed(2);
     const pollutionMultiplier = Math.max(0, 1 + modPollutionMultiplierBonus + techPollutionMultiplierBonus);
-    el.pollutionPerSec.textContent = (pollutionPerSecond * pollutionMultiplier).toFixed(1);
+    el.pollutionPerSec.textContent = (getPollutionPerSecond() * pollutionMultiplier).toFixed(1);
+
+    updateBuildingLabels();
 
     el.upgradeCost.textContent = upgradeCost;
     el.MarketCost.textContent = MarketCost;
@@ -2042,6 +2159,9 @@ function saveGame() {
         population,
         basePopulationPS,
         populationPS,
+        smallMarkets,
+        mediumMarkets,
+        bigMarkets,
         cps1, cps2, cps3, cps4, cps5, cps6, cps7, cps8, cps9, cps10, cps11, cps12, cps13, cps14, cps15,
         pollution,
         pollutionPerSecond,
@@ -2053,6 +2173,7 @@ function saveGame() {
         bigFactories,
         oilCount,
         Nuclears,
+        antimatterReactors,
         solarPlants,
         windTurbines,
         recyclingCenters,
