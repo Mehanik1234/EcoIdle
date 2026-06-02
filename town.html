@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>City View</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #18231b;
+            color: #f4f7ef;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        canvas.dragging {
+            cursor: grabbing;
+        }
+
+        .hud {
+            position: fixed;
+            left: 16px;
+            top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: min(760px, calc(100vw - 32px));
+            pointer-events: none;
+        }
+
+        .pill {
+            min-width: 116px;
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(14, 19, 16, 0.72);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+        }
+
+        .label {
+            display: block;
+            color: rgba(244, 247, 239, 0.72);
+            font-size: 11px;
+            line-height: 1.2;
+            text-transform: uppercase;
+            letter-spacing: 0;
+        }
+
+        .value {
+            display: block;
+            margin-top: 3px;
+            font-size: 18px;
+            line-height: 1.1;
+            font-weight: 700;
+        }
+
+        .hint {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            max-width: min(360px, calc(100vw - 32px));
+            padding: 9px 11px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(14, 19, 16, 0.62);
+            color: rgba(244, 247, 239, 0.72);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .exit-link {
+            position: fixed;
+            right: 16px;
+            top: 16px;
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 92px;
+            min-height: 38px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 8px;
+            background: rgba(14, 19, 16, 0.78);
+            color: #f4f7ef;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(8px);
+        }
+
+        .exit-link:hover {
+            background: rgba(42, 54, 43, 0.86);
+        }
+
+        @media (max-width: 640px) {
+            .hud {
+                left: 10px;
+                top: 10px;
+                gap: 6px;
+                max-width: calc(100vw - 20px);
+            }
+
+            .pill {
+                min-width: calc(50vw - 13px);
+                padding: 7px 8px;
+            }
+
+            .value {
+                font-size: 16px;
+            }
+
+            .hint {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                max-width: none;
+            }
+
+            .exit-link {
+                right: 10px;
+                top: auto;
+                bottom: 58px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cityCanvas"></canvas>
+    <a class="exit-link" id="exitLink" href="game.html">Exit</a>
+    <div class="hud">
+        <div class="pill"><span class="label">Population</span><span class="value" id="populationValue">0</span></div>
+        <div class="pill"><span class="label">Homes</span><span class="value" id="homesValue">4</span></div>
+        <div class="pill"><span class="label">Factories</span><span class="value" id="factoryValue">0</span></div>
+        <div class="pill"><span class="label">Pollution</span><span class="value" id="pollutionValue">0</span></div>
+    </div>
+    <div class="hint">Drag the map to inspect the growing city. It follows the active save from index.html.</div>
+
+    <script>
+        const canvas = document.getElementById("cityCanvas");
+        const ctx = canvas.getContext("2d");
+        const hud = {
+            population: document.getElementById("populationValue"),
+            homes: document.getElementById("homesValue"),
+            factories: document.getElementById("factoryValue"),
+            pollution: document.getElementById("pollutionValue")
+        };
+        const exitLink = document.getElementById("exitLink");
+
+
+        const SAVE_KEY_PREFIX = "idleGameSave_slot";
+        const ACTIVE_SLOT_KEY = "idleGameActiveSlot";
+        const LEGACY_SAVE_KEY = "idleGameSave";
+        const TILE = 104;
+        const BLOCK = 280;
+
+        let pixelRatio = 1;
+        let lastSignature = "";
+        let city = buildCity(readGameState());
+        const camera = {
+            x: 0,
+            y: 0,
+            dragging: false,
+            lastX: 0,
+            lastY: 0
+        };
+
+        function resize() {
+            pixelRatio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            canvas.width = Math.floor(window.innerWidth * pixelRatio);
+            canvas.height = Math.floor(window.innerHeight * pixelRatio);
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        }
+
+        function readGameState() {
+            const activeSlot = Number(localStorage.getItem(ACTIVE_SLOT_KEY)) || 1;
+            const raw = localStorage.getItem(`${SAVE_KEY_PREFIX}${activeSlot}`) || localStorage.getItem(LEGACY_SAVE_KEY);
+            let save = {};
+
+            if (raw) {
+                try {
+                    save = JSON.parse(raw) || {};
+                } catch (error) {
+                    save = {};
+                }
+            }
+
+            const population = Math.max(0, Math.floor(toNumber(save.population, 1000)));
+            const pollution = Math.max(0, toNumber(save.pollution, 0));
+            const factories =
+                toNumber(save.smallFactories, 0) +
+                toNumber(save.mediumFactories, 0) +
+                toNumber(save.bigFactories, 0) +
+                toNumber(save.chemicalPlants, 0) +
+                toNumber(save.foundries, 0) +
+                toNumber(save.megaPlants, 0);
+
+            return {
+                population,
+                pollution,
+                factories: Math.max(0, Math.floor(factories))
+            };
+        }
+
+        function toNumber(value, fallback) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : fallback;
+        }
+
+        function signature(state) {
+            return `${state.population}|${Math.round(state.pollution * 10)}|${state.factories}`;
+        }
+
+        function refreshCity() {
+            const state = readGameState();
+            const nextSignature = signature(state);
+
+            if (nextSignature === lastSignature) return;
+            lastSignature = nextSignature;
+            city = buildCity(state);
+            updateHud(city.state, city.homes.length, city.factories.length);
+        }
+
+        function buildCity(state) {
+            const extraHomes = Math.floor(Math.max(0, state.population - 1000) / 500);
+            const homeCount = Math.max(0, state.population > 0 ? 4 + extraHomes : 0);
+            const factoryCount = Math.floor(state.factories / 5);
+            const homeLots = generateLots(homeCount, factoryCount);
+            const homes = homeLots.slice(0, homeCount).map((lot, index) => makeHome(lot, index, state.pollution));
+            const factories = homeLots.slice(homeCount, homeCount + factoryCount).map((lot, index) => makeFactory(lot, index));
+            const roads = generateRoads(homes.concat(factories));
+
+            return {
+                state,
+                homes,
+                factories,
+                roads,
+                bounds: computeBounds(homes.concat(factories), roads)
+            };
+        }
+
+        function generateLots(homeCount, factoryCount) {
+            const lots = [];
+            const homeBlocks = makeBlockOrder(8);
+            const homeOffsets = [
+                { x: -72, y: -68 },
+                { x: 68, y: -68 },
+                { x: -72, y: 66 },
+                { x: 68, y: 66 }
+            ];
+
+            for (let i = 0; lots.length < homeCount; i++) {
+                const block = homeBlocks[Math.floor(i / homeOffsets.length) % homeBlocks.length];
+                const offset = homeOffsets[i % homeOffsets.length];
+                lots.push({
+                    x: block.x * BLOCK + offset.x,
+                    y: block.y * BLOCK + offset.y,
+                    angle: 0
+                });
+            }
+
+            const industrialStart = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, homeCount)) / 2));
+            for (let i = 0; i < factoryCount; i++) {
+                const row = Math.floor(i / 3);
+                const col = i % 3;
+                lots.push({
+                    x: (industrialStart + col) * BLOCK + 30,
+                    y: (1 + row) * BLOCK + 12,
+                    angle: 0
+                });
+            }
+
+            return lots;
+        }
+
+        function makeBlockOrder(radius) {
+            const blocks = [];
+            for (let y = -radius; y <= radius; y++) {
+                for (let x = -radius; x <= radius; x++) {
+                    blocks.push({ x, y, distance: Math.abs(x) + Math.abs(y), tie: x * x + y * y });
+                }
+            }
+            blocks.sort((a, b) => a.distance - b.distance || a.tie - b.tie || a.y - b.y || a.x - b.x);
+            return blocks;
+        }
+
+        function makeHome(lot, index, pollution) {
+            const colors = pollution > 180
+                ? ["#5d5d59", "#4b4d4d", "#3f4140"]
+                : ["#969a9a", "#777b7d", "#5f6266", "#a7aaa7"];
+
+            return {
+                type: "home",
+                x: lot.x,
+                y: lot.y,
+                w: seededRange(index + 4, 54, 72),
+                h: seededRange(index + 17, 48, 66),
+                color: colors[index % colors.length],
+                roof: index % 3 === 0 ? "#3f4347" : "#55595e",
+                trim: index % 2 === 0 ? "#2e3235" : "#777a7c",
+                angle: 0,
+                windows: 2 + (index % 2)
+            };
+        }
+
+        function makeFactory(lot, index) {
+            return {
+                type: "factory",
+                x: lot.x,
+                y: lot.y,
+                w: seededRange(index + 220, 92, 116),
+                h: seededRange(index + 240, 64, 82),
+                color: index % 2 === 0 ? "#595d61" : "#474b50",
+                roof: "#32363b",
+                angle: 0,
+                stacks: 2 + (index % 2)
+            };
+        }
+
+        function generateRoads(buildings) {
+            const roads = [];
+            const maxDistance = Math.max(BLOCK * 2, buildings.reduce((max, item) => Math.max(max, Math.abs(item.x), Math.abs(item.y)), 0) + BLOCK);
+            const minRoad = Math.floor(-maxDistance / BLOCK) * BLOCK;
+            const maxRoad = Math.ceil(maxDistance / BLOCK) * BLOCK;
+            const usedX = new Set([0]);
+            const usedY = new Set([0]);
+
+            buildings.forEach((building) => {
+                usedX.add(Math.round(building.x / BLOCK) * BLOCK);
+                usedY.add(Math.round(building.y / BLOCK) * BLOCK);
+            });
+
+            Array.from(usedY).sort((a, b) => a - b).forEach((y) => {
+                roads.push({ points: [{ x: minRoad, y }, { x: maxRoad, y }], width: y === 0 ? 30 : 22 });
+            });
+
+            Array.from(usedX).sort((a, b) => a - b).forEach((x) => {
+                roads.push({ points: [{ x, y: minRoad }, { x, y: maxRoad }], width: x === 0 ? 30 : 22 });
+            });
+
+            buildings.forEach((building, index) => {
+                const roadX = Math.round(building.x / BLOCK) * BLOCK;
+                const roadY = Math.round(building.y / BLOCK) * BLOCK;
+                const doorY = building.y + building.h / 2 + 6;
+                roads.push({
+                    points: [
+                        { x: building.x, y: doorY },
+                        { x: building.x, y: roadY },
+                        { x: roadX, y: roadY }
+                    ],
+                    width: index % 3 === 0 ? 14 : 12
+                });
+            });
+
+            return roads;
+        }
+
+        function computeBounds(buildings, roads) {
+            const xs = [];
+            const ys = [];
+
+            buildings.forEach((item) => {
+                xs.push(item.x - item.w, item.x + item.w);
+                ys.push(item.y - item.h, item.y + item.h);
+            });
+            roads.forEach((road) => road.points.forEach((point) => {
+                xs.push(point.x);
+                ys.push(point.y);
+            }));
+
+            return {
+                minX: Math.min(-500, ...xs) - 160,
+                maxX: Math.max(500, ...xs) + 160,
+                minY: Math.min(-500, ...ys) - 160,
+                maxY: Math.max(500, ...ys) + 160
+            };
+        }
+
+        function draw() {
+            refreshCity();
+
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            drawGround(width, height, city.state.pollution);
+
+            ctx.save();
+            ctx.translate(width / 2 - camera.x, height / 2 - camera.y);
+            drawGroundTexture(city.bounds, city.state.pollution);
+            drawRoads(city.roads);
+            drawBuildings(city.homes);
+            drawFactories(city.factories, city.state.pollution);
+            ctx.restore();
+
+            requestAnimationFrame(draw);
+        }
+
+        function drawGround(width, height, pollution) {
+            ctx.fillStyle = grassColor(pollution);
+            ctx.fillRect(0, 0, width, height);
+
+            if (pollution > 80) {
+                ctx.fillStyle = `rgba(72, 64, 47, ${Math.min(0.28, pollution / 1800)})`;
+                ctx.fillRect(0, 0, width, height);
+            }
+        }
+
+        function grassColor(pollution) {
+            if (pollution < 15) return "#3f8d3a";
+            if (pollution < 45) return "#729247";
+            if (pollution < 80) return "#8a8c45";
+            if (pollution < 150) return "#77764d";
+            if (pollution < 300) return "#59583d";
+            if (pollution < 500) return "#3f4537";
+            return "#2b312d";
+        }
+
+        function drawGroundTexture(bounds, pollution) {
+            const alpha = pollution > 150 ? 0.18 : 0.1;
+            ctx.fillStyle = `rgba(18, 25, 18, ${alpha})`;
+
+            for (let x = Math.floor(bounds.minX / 140) * 140; x < bounds.maxX; x += 140) {
+                for (let y = Math.floor(bounds.minY / 140) * 140; y < bounds.maxY; y += 140) {
+                    if ((x + y) % 280 === 0) {
+                        ctx.fillRect(x + 18, y + 34, 28, 5);
+                    } else {
+                        ctx.fillRect(x + 84, y + 72, 18, 4);
+                    }
+                }
+            }
+        }
+
+        function drawRoads(roads) {
+            roads.forEach((road) => {
+                drawPath(road.points, road.width + 10, "#34383a", "round");
+                drawPath(road.points, road.width, "#54575b", "round");
+                drawPath(road.points, 2, "rgba(235, 226, 170, 0.55)", "round", [26, 22]);
+            });
+        }
+
+        function drawPath(points, width, stroke, cap, dash) {
+            if (points.length < 2) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                const point = points[i];
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.lineWidth = width;
+            ctx.strokeStyle = stroke;
+            ctx.lineCap = cap;
+            ctx.lineJoin = "round";
+            if (dash) ctx.setLineDash(dash);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawBuildings(buildings) {
+            buildings.forEach((building) => {
+                ctx.save();
+                ctx.translate(building.x, building.y);
+                drawShadow(building.w, building.h);
+
+                ctx.fillStyle = "rgba(26, 31, 28, 0.2)";
+                ctx.fillRect(-building.w / 2 - 8, -building.h / 2 - 8, building.w + 16, building.h + 16);
+
+                ctx.fillStyle = building.color;
+                ctx.fillRect(-building.w / 2, -building.h / 2, building.w, building.h);
+
+                ctx.fillStyle = building.trim;
+                ctx.fillRect(-building.w / 2, -building.h / 2, building.w, 8);
+                ctx.fillRect(-building.w / 2, building.h / 2 - 8, building.w, 8);
+                ctx.fillRect(-building.w / 2, -building.h / 2, 8, building.h);
+                ctx.fillRect(building.w / 2 - 8, -building.h / 2, 8, building.h);
+
+                ctx.fillStyle = building.roof;
+                ctx.fillRect(-building.w / 2 + 10, -building.h / 2 + 10, building.w - 20, 14);
+
+                ctx.fillStyle = "rgba(236, 230, 182, 0.68)";
+                for (let i = 0; i < building.windows; i++) {
+                    ctx.fillRect(-building.w / 2 + 14 + i * 18, -building.h / 2 + 30, 9, 9);
+                    ctx.fillRect(-building.w / 2 + 14 + i * 18, building.h / 2 - 24, 9, 9);
+                }
+
+                ctx.fillStyle = "#2f3334";
+                ctx.fillRect(building.w / 2 - 24, building.h / 2 - 24, 12, 24);
+
+                ctx.strokeStyle = "rgba(20, 23, 23, 0.55)";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-building.w / 2, -building.h / 2, building.w, building.h);
+                ctx.restore();
+            });
+        }
+
+        function drawFactories(factories, pollution) {
+            factories.forEach((factory) => {
+                ctx.save();
+                ctx.translate(factory.x, factory.y);
+                drawShadow(factory.w, factory.h);
+
+                ctx.fillStyle = "rgba(28, 30, 30, 0.24)";
+                ctx.fillRect(-factory.w / 2 - 10, -factory.h / 2 - 10, factory.w + 20, factory.h + 20);
+
+                ctx.fillStyle = factory.color;
+                ctx.fillRect(-factory.w / 2, -factory.h / 2, factory.w, factory.h);
+                ctx.fillStyle = factory.roof;
+                ctx.fillRect(-factory.w / 2 + 4, -factory.h / 2 + 4, factory.w - 8, 16);
+                ctx.fillStyle = "#686d70";
+                ctx.fillRect(-factory.w / 2 + 10, -factory.h / 2 + 26, factory.w - 20, 10);
+                ctx.fillStyle = "#2b2f32";
+                ctx.fillRect(factory.w / 2 - 28, factory.h / 2 - 28, 18, 28);
+
+                for (let i = 0; i < factory.stacks; i++) {
+                    const sx = -factory.w / 2 + 14 + i * 20;
+                    ctx.fillStyle = "#36393d";
+                    ctx.fillRect(sx, -factory.h / 2 - 30, 12, 34);
+                    ctx.fillStyle = "#25282b";
+                    ctx.fillRect(sx - 2, -factory.h / 2 - 34, 16, 6);
+                    if (pollution > 25) {
+                        ctx.fillStyle = `rgba(65, 62, 58, ${Math.min(0.42, 0.12 + pollution / 850)})`;
+                        ctx.beginPath();
+                        ctx.ellipse(sx + 8, -factory.h / 2 - 44 - i * 5, 14 + i * 3, 8, -0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.fillStyle = "rgba(210, 220, 205, 0.45)";
+                ctx.fillRect(-factory.w / 2 + 10, factory.h / 2 - 20, factory.w - 20, 8);
+                ctx.strokeStyle = "rgba(16, 18, 19, 0.68)";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-factory.w / 2, -factory.h / 2, factory.w, factory.h);
+                ctx.restore();
+            });
+        }
+
+        function drawShadow(w, h) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+            ctx.fillRect(-w / 2 + 8, -h / 2 + 10, w, h);
+        }
+
+        function updateHud(state, homeCount, factoryBlockCount) {
+            hud.population.textContent = formatNumber(state.population);
+            hud.homes.textContent = formatNumber(homeCount);
+            hud.factories.textContent = `${formatNumber(factoryBlockCount)} / ${formatNumber(state.factories)}`;
+            hud.pollution.textContent = state.pollution.toFixed(1);
+        }
+
+        function formatNumber(value) {
+            return Math.floor(value).toLocaleString("en-US");
+        }
+
+        function seededRange(seed, min, max) {
+            const x = Math.sin(seed * 999 + 17.31) * 10000;
+            const t = x - Math.floor(x);
+            return Math.round(min + t * (max - min));
+        }
+
+        function pointerDown(event) {
+            camera.dragging = true;
+            camera.lastX = event.clientX;
+            camera.lastY = event.clientY;
+            canvas.classList.add("dragging");
+            canvas.setPointerCapture(event.pointerId);
+        }
+
+        function pointerMove(event) {
+            if (!camera.dragging) return;
+            const dx = event.clientX - camera.lastX;
+            const dy = event.clientY - camera.lastY;
+            camera.x -= dx;
+            camera.y -= dy;
+            camera.lastX = event.clientX;
+            camera.lastY = event.clientY;
+        }
+
+        function pointerUp(event) {
+            camera.dragging = false;
+            canvas.classList.remove("dragging");
+            if (canvas.hasPointerCapture(event.pointerId)) {
+                canvas.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        canvas.addEventListener("pointerdown", pointerDown);
+        canvas.addEventListener("pointermove", pointerMove);
+        canvas.addEventListener("pointerup", pointerUp);
+        canvas.addEventListener("pointercancel", pointerUp);
+        window.addEventListener("resize", resize);
+        window.addEventListener("storage", refreshCity);
+
+        resize();
+        refreshCity();
+        draw();
+    </script>
+</body>
+</html>
